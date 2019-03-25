@@ -1,0 +1,158 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "automationAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of azure automation account to be created."
+            }
+        },
+        "automationAccountLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the Azure Automation Account and Log Analytics Workspace. Must be valid location for both services."
+            }
+        },
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Log Analytics Workspace to be created."
+            }
+        },
+        "webhookUri": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Valid Webhook URI for Automation runbook."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "webhooks": "2015-10-31",
+            "actionGroups": "2018-03-01",
+            "scheduledQueryRules": "2018-04-16"
+        },
+        "hiddenLinkTag": "[json(concat('{\"hidden-link:/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'), '\": \"Resource\"}'))]",
+        "logAnalyticsLocations": {
+            "West Central US": "westcentralus",
+            "East US": "eastus",
+            "West Europe": "westeurope",
+            "Central India": "centralindia",
+            "Canada Central": "canadacentral",
+            "Australia Southeast": "australiasoutheast",
+            "Japan East": "japaneast",
+            "Southeast Asia": "southeastasia",
+            "UK South": "uksouth",
+            "South Central US": "southcentralus",
+            "North Europe": "northeurope",
+            "West US 2": "westus2",
+            "westcentralus": "westcentralus",
+            "eastus": "eastus",
+            "westeurope": "westeurope",
+            "centralindia": "centralindia",
+            "canadacentral": "canadacentral",
+            "australiasoutheast": "australiasoutheast",
+            "japaneast": "japaneast",
+            "southeastasia": "southeastasia",
+            "uksouth": "uksouth",
+            "southcentralus": "southcentralus",
+            "northeurope": "northeurope",
+            "westus2": "westus2"
+        },
+        "webhookName": "RemediateAlert",
+        "actionGroupName": "mgmtDemo"
+    },
+    "resources": [
+        {
+            "condition": "[not(empty(parameters('webhookUri')))]",
+            "type": "Microsoft.Automation/automationAccounts/webhooks",
+            "name": "[concat(parameters('automationAccountName'), '/', variables('webhookName'))]",
+            "apiVersion": "[variables('apiVersions').webhooks]",
+            "properties": {
+                "isEnabled": true,
+                "uri": "[parameters('webhookUri')]",
+                "expiryTime": "2028-12-19T12:26:28.776+00:00",
+                "runbook": {
+                    "name": "RemediateAlert"
+                },
+                "parameters": null
+            }
+        },
+        {
+            "condition": "[not(empty(parameters('webhookUri')))]",
+            "type": "Microsoft.Insights/actionGroups",
+            "name": "[variables('actionGroupName')]",
+            "apiVersion": "[variables('apiVersions').actionGroups]",
+            "location": "Global",
+            "properties": {
+                "groupShortName": "mgmt",
+                "enabled": true,
+                "emailReceivers": [],
+                "smsReceivers": [],
+                "webhookReceivers": [],
+                "itsmReceivers": [],
+                "azureAppPushReceivers": [],
+                "automationRunbookReceivers": [
+                    {
+                        "automationAccountId": "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]",
+                        "runbookName": "RemediateAlert",
+                        "webhookResourceId": "[resourceId('Microsoft.Automation/automationAccounts/webhooks', parameters('automationAccountName'), variables('webhookName'))]",
+                        "isGlobalRunbook": false,
+                        "name": "Runbook",
+                        "serviceUri": "[parameters('webhookUri')]"
+                    }
+                ],
+                "voiceReceivers": [],
+                "logicAppReceivers": [],
+                "azureFunctionReceivers": []
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts/webhooks', parameters('automationAccountName'), variables('webhookName'))]"
+            ]
+        },
+        {
+            "name": "Windows Service Stopped",
+            "type": "Microsoft.Insights/scheduledQueryRules",
+            "apiVersion": "[variables('apiVersions').scheduledQueryRules]",
+            "location": "[variables('logAnalyticsLocations')[parameters('automationAccountLocation')]]",
+            "properties": {
+                "description": "Notifies on Windows Services Stopped.",
+                "enabled": "true",
+                "source": {
+                    "query": "ConfigurationChange | where ConfigChangeType == 'WindowsServices'  and SvcState == 'Stopped'  | where SvcDisplayName == 'Print Spooler' or SvcDisplayName == 'DHCP Client' or SvcDisplayName == 'Server' or SvcDisplayName == 'Windows Time' or SvcDisplayName == 'DNS Client' | extend ComputerService = strcat(SourceComputerId, ' - ', SvcDisplayName) | extend AggregatedValue = 1 | summarize arg_max(TimeGenerated, *) by ComputerService, bin(TimeGenerated, 5m)",
+                    "dataSourceId": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
+                    "queryType": "ResultCount"
+                },
+                "schedule": {
+                    "frequencyInMinutes": 5,
+                    "timeWindowInMinutes": 5
+                },
+                "action": {
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "0",
+                    "throttlingInMin": 0,
+                    "aznsAction": {
+                        "actionGroup": [
+                            "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+                        ]
+                    },
+                    "trigger": {
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 0,
+                        "metricTrigger": {
+                            "thresholdOperator": "GreaterThan",
+                            "threshold": 0,
+                            "metricTriggerType": "Total",
+                            "metricColumn": "AggregatedValue"
+                        }
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('microsoft.insights/actionGroups', variables('actionGroupName'))]"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,63 @@
+﻿{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "kvName": {
+            "type": "string",
+            "metadata": {
+                "description": "key vault name"
+            }
+        },
+        "workspaceResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "resource Id of the OMS workspace where the metrics and diagnostic logs are sent to."
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "comments": "keyVault",
+            "type": "Microsoft.KeyVault/vaults",
+            "name": "[parameters('kvName')]",
+            "apiVersion": "2015-06-01",
+            "location": "[resourceGroup().location]",
+            "tags": {},
+            "scale": null,
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "standard"
+                  },
+                "tenantId": "[subscription().tenantId]",
+                "accessPolicies": [],
+                "enabledForDeployment": false,
+                "enabledForTemplateDeployment": false
+            },
+            "resources": [
+                {
+                    "type": "Microsoft.KeyVault/vaults/providers/diagnosticSettings",
+                    "name": "[concat(parameters('kvName'), '/Microsoft.Insights/service')]",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                      "[resourceId('Microsoft.KeyVault/vaults', parameters('kvName'))]"
+                    ],
+                    "apiVersion": "2016-09-01",
+                    "properties": {
+                      "workspaceId": "[parameters('workspaceResourceId')]",
+                      "logs": [
+                        {
+                          "category": "AuditEvent",
+                          "enabled": true
+                        }
+                      ]
+                    }
+                  }
+            ],
+            "dependsOn": []
+        }
+    ],
+    "outputs": {
+    }
+}

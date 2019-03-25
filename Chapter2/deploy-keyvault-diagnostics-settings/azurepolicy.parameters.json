@@ -1,0 +1,10 @@
+{
+	"logAnalytics": {
+		"type": "string",
+		"metadata": {
+            "displayName": "Log Analytics workspace",
+            "description": "Select the Log Analytics workspace from dropdown list",
+            "strongType": "omsWorkspace"
+		}
+	}
+}

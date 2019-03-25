@@ -1,0 +1,295 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "logAnalyticsSubscription": {
+            "type": "string",
+            "metadata": {
+                "description": "The subscription id of the Log Analytics workspace."
+            }
+        },
+        "logAnalyticsResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource group of the Log Analytics workspace."
+            }
+        },
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "Log Analytics workspace name"
+            }
+        },
+        "logAnalyticsWorkspaceLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "Log Analytics location"
+            }
+        },
+        "securityContactMail": {
+            "type": "string",
+            "metadata": {
+                "description": "Security Contact e-mail."
+            }
+        },
+        "securityContactPhone": {
+            "type": "string",
+            "metadata": {
+                "description": "Security Contact phone number."
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter12/security",
+            "metadata": {
+                "description": "The location of resources, such as templates and DSC modules, that the template depends on."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Auto-generated token to access _artifactsLocation."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "deployments": "2018-05-01",
+            "pricings": "2017-08-01-preview",
+            "resourceGroups": "2018-05-01"
+        },
+        "templatesUris": {
+            "logAnalytics": "[concat(parameters('_artifactsLocation'), '/log-analytics.json', parameters('_artifactsLocationSasToken'))]"
+        }
+    },
+    "resources": [
+        {
+            "comments": "Sets ASC pricing on Subscription level",
+            "type": "Microsoft.Security/pricings",
+            "apiVersion": "2017-08-01-preview",
+            "name": "default",
+            "properties": {
+                "pricingTier": "Standard"
+            }
+        },
+        {
+            "comments": "Sets ASC pricing on Subscription level for Azure VMs specifically.",
+            "type": "Microsoft.Security/pricings",
+            "apiVersion": "2018-06-01",
+            "name": "VirtualMachines",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]"
+            ],
+            "properties": {
+                "pricingTier": "Standard"
+            }
+        },
+        {
+            "comments": "Sets ASC pricing on Subscription level for Azure SQL specifically.",
+            "type": "Microsoft.Security/pricings",
+            "apiVersion": "2018-06-01",
+            "name": "SqlServers",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/VirtualMachines')]"
+            ],
+            "properties": {
+                "pricingTier": "Standard"
+            }
+        },
+        {
+            "comments": "Sets ASC pricing on Subscription level for Azure App services specifically.",
+            "type": "Microsoft.Security/pricings",
+            "apiVersion": "2018-06-01",
+            "name": "AppServices",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/SqlServers')]"
+            ],
+            "properties": {
+                "pricingTier": "Standard"
+            }
+        },
+        {
+            "comments": "Enables Windows Defender ATP integration.",
+            "type": "Microsoft.Security/settings",
+            "apiVersion": "2017-08-01-preview",
+            "name": "WDATP",
+            "kind": "DataExportSettings",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]"
+            ],
+            "properties": {
+                "enabled": true
+            }
+        },
+        {
+            "comments": "Enables Cloud App security integration.",
+            "type": "Microsoft.Security/settings",
+            "apiVersion": "2017-08-01-preview",
+            "name": "MCAS",
+            "kind": "DataExportSettings",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]"
+            ],
+            "properties": {
+                "enabled": true
+            }
+        },
+        {
+            "comments": "Sets ASC Contacts",
+            "type": "Microsoft.Security/securityContacts",
+            "apiVersion": "2017-08-01-preview",
+            "name": "default1",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]"
+            ],
+            "properties": {
+                "email": "[parameters('securityContactMail')]",
+                "phone": "[parameters('securityContactPhone')]",
+                "alertNotifications": "On",
+                "alertsToAdmins": "On"
+            }
+        },
+        {
+            "comments": "Sets Automatic agent provisioning for Azure VMs.",
+            "type": "Microsoft.Security/autoProvisioningSettings",
+            "apiVersion": "2017-08-01-preview",
+            "name": "default",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]"
+            ],
+            "properties": {
+                "autoProvision": "On"
+            }
+        },
+        {
+            "condition": "[if(equals(parameters('logAnalyticsSubscription'), subscription().subscriptionId), bool('true'), bool('false'))]",
+            "name": "[parameters('logAnalyticsResourceGroupName')]",
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "[variables('apiVersions').resourceGroups]",
+            "location": "[parameters('logAnalyticsWorkspaceLocation')]",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]"
+            ],
+            "properties": {}
+        },
+        {
+            "condition": "[if(equals(parameters('logAnalyticsSubscription'), subscription().subscriptionId), bool('true'), bool('false'))]",
+            "name": "logAnalyticsDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "dependsOn": [
+                "[resourceId( 'Microsoft.Resources/resourceGroups/', parameters( 'logAnalyticsResourceGroupName' ) )]"
+            ],
+            "resourceGroup": "[parameters('logAnalyticsResourceGroupName')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').logAnalytics]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "logAnalyticsWorkspaceName": {
+                        "value": "[parameters('logAnalyticsWorkspaceName')]"
+                    },
+                    "logAnalyticsWorkspaceLocation": {
+                        "value": "[parameters('logAnalyticsWorkspaceLocation')]"
+                    },
+                    "tier": {
+                        "value": "All"
+                    }
+                }
+            }
+        },
+        {
+            "comments": "sets Log Analytics workspace for ASC",
+            "type": "Microsoft.Security/workspaceSettings",
+            "apiVersion": "2017-08-01-preview",
+            "name": "default",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]",
+                "logAnalyticsDeployment"
+            ],
+            "properties": {
+                "workspaceId": "[concat('/subscriptions/', parameters('logAnalyticsSubscription'), '/resourceGroups/', parameters('logAnalyticsResourceGroupName'), '/providers/Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]",
+                "scope": "[subscription().id]"
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/policyAssignments",
+            "name": "SecurityCenterBuiltIn",
+            "apiVersion": "2018-05-01",
+            "location": "[deployment().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]"
+            ],
+            "properties": {
+                "displayName": "[concat('ASC Default (subscription: ', subscription().subscriptionId, ')')]",
+                "description": "This policy assignment was automatically created by Azure Security Center",
+                "scope": "[subscription().id]",
+                "notScopes": [],
+                "policyDefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/1f3afdf9-d0c9-4c3d-847f-89da613e70a8",
+                "parameters": {
+                    "systemUpdatesMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "systemConfigurationsMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "endpointProtectionMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "diskEncryptionMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "networkSecurityGroupsMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "webApplicationFirewallMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "nextGenerationFirewallMonitoringEffect": {
+                        "value": "Disabled"
+                    },
+                    "vulnerabilityAssesmentMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "storageEncryptionMonitoringEffect": {
+                        "value": "Audit"
+                    },
+                    "jitNetworkAccessMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "adaptiveApplicationControlsMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "sqlAuditingMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    },
+                    "sqlEncryptionMonitoringEffect": {
+                        "value": "AuditIfNotExists"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/policyAssignments",
+            "name": "DataProtectionSecurityCenter",
+            "apiVersion": "2018-05-01",
+            "location": "[deployment().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Security/pricings/default')]"
+            ],
+            "properties": {
+                "displayName": "[concat('ASC DataProtection (subscription: ', subscription().subscriptionId, ')')]",
+                "description": "This policy assignment was automatically created by Azure Security Center",
+                "scope": "[subscription().id]",
+                "metadata": {
+                    "assignedBy": "Security Center"
+                  },
+                "notScopes": [],
+                "policyDefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/9cb3cc7a-b39b-4b82-bc89-e5a5d9ff7b97"
+            }
+        }
+    ]
+}

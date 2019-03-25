@@ -1,0 +1,112 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "LinuxApplicationName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the linux application"
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "policyAssignments": "2018-05-01",
+            "deployments": "2018-05-01",
+            "roleAssignments": "2017-09-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6",
+            "type": "Microsoft.Authorization/policyAssignments",
+            "apiVersion": "[variables('apiVersions').policyAssignments]",
+            "location": "[resourceGroup().location]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "displayName": "[Preview]: Audit that password security settings are set correctly inside Linux and Windows machines",
+                "description": null,
+                "metadata": {
+                    "assignedBy": "Inside Azure Management"
+                },
+                "scope": "[resourceGroup().id]",
+                "policyDefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6",
+                "parameters": {}
+            }
+        },
+        {
+            "name": "c937dcb4-4398-4b39-8d63-4a6be432252e",
+            "type": "Microsoft.Authorization/policyAssignments",
+            "apiVersion": "[variables('apiVersions').policyAssignments]",
+            "location": "[resourceGroup().location]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "displayName": "[Preview]: Audit that an application is installed inside Linux VMs",
+                "description": null,
+                "metadata": {
+                    "assignedBy": "Inside Azure Management"
+                },
+                "scope": "[resourceGroup().id]",
+                "policyDefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/c937dcb4-4398-4b39-8d63-4a6be432252e",
+                "parameters": {
+                    "ApplicationName": {
+                        "value": "[parameters('LinuxApplicationName')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[concat('waitTemplateDeployment-', '3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6', '-', copyIndex())]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Authorization/policyAssignments', '3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6')]",
+                "[resourceId('Microsoft.Authorization/policyAssignments', 'c937dcb4-4398-4b39-8d63-4a6be432252e')]"
+            ],
+            "copy": {
+                "name": "waitTemplateDeploymentCopy",
+                "count": 5,
+                "mode": "serial",
+                "batchSize": 1
+            },
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": []
+                }
+            }
+        },
+        {
+            "name": "[guid(concat('3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6', resourceGroup().name, '-Contributor' ) )]",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "[variables('apiVersions').roleAssignments]",
+            "dependsOn": [
+                "waitTemplateDeploymentCopy"
+            ],
+            "properties": {
+                "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                "principalId": "[reference('3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6', variables('apiVersions').policyAssignments, 'Full' ).identity.principalId]",
+                "scope": "[resourceGroup().id]"
+            }
+        },
+        {
+            "name": "[guid(concat('c937dcb4-4398-4b39-8d63-4a6be432252e', resourceGroup().name, '-Contributor' ) )]",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "[variables('apiVersions').roleAssignments]",
+            "dependsOn": [
+                "waitTemplateDeploymentCopy"
+            ],
+            "properties": {
+                "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                "principalId": "[reference('c937dcb4-4398-4b39-8d63-4a6be432252e', variables('apiVersions').policyAssignments, 'Full' ).identity.principalId]",
+                "scope": "[resourceGroup().id]"
+            }
+        }
+    ]
+}

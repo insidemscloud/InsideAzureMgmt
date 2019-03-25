@@ -1,0 +1,81 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {
+        "alertSchedule":{
+            "Frequency": 5,
+            "Time": 5
+        },
+        "ServicehealthAlertsName": "ServiceHealthActivityLogAlert",
+        "ServicehealthAlertsDescription": "Azure Service Health Alerts",
+        "svcHealthAlertScope": ["[subscription().id]"],
+        "action-groups": {
+            "name": "action-group-servicehealth",
+            "shortName": "svchealth",
+            "emailAddress": "your@email.com"
+        }
+    },
+    "resources": [
+        {
+            "comments": "Action Group",
+            "type": "microsoft.insights/actionGroups",
+            "name": "[variables('action-groups').name]",
+            "apiVersion": "2018-09-01",
+            "location": "Global",
+            "tags": {},
+            "scale": null,
+            "properties": {
+                "groupShortName": "[variables('action-groups').shortName]",
+                "enabled": true,
+                "emailReceivers": [
+                    {
+                        "name": "[variables('action-groups').shortName]",
+                        "emailAddress": "[variables('action-groups').emailAddress]"
+                    }
+                ],
+                "smsReceivers": [],
+                "webhookReceivers": [],
+                "itsmReceivers":[],
+                "azureAppPushReceivers": [],
+                "automationRunbookReceivers": [],
+                "voiceReceivers":[],
+                "logicAppReceivers":[],
+                "azureFunctionReceivers":[],
+                "armRoleReceivers":[]
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Service Health Activity Log Alert",
+            "type": "microsoft.insights/activityLogAlerts",
+            "name": "[variables('ServicehealthAlertsName')]",
+            "apiVersion": "2017-04-01",
+            "location": "Global",
+            "tags": {},
+            "scale": null,
+            "properties": {
+                "scopes": "[variables('svcHealthAlertScope')]",
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "ServiceHealth"
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[resourceId('microsoft.insights/actionGroups', variables('action-groups').name)]",
+                            "webhookProperties": {}
+                        }
+                    ]
+                },
+                "enabled": true,
+                "description": "[variables('ServicehealthAlertsDescription')]"
+            },
+            "dependsOn": []
+        }
+    ]
+}

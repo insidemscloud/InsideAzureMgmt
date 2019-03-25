@@ -1,0 +1,132 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the resource group to be created."
+            }
+        },
+        "resourceGroupLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the resource group to be created."
+            }
+        },
+        "automationAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of azure automation account to be created."
+            }
+        },
+        "automationAccountLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the Azure Automation Account and Log Analytics Workspace. Must be valid location for both services."
+            }
+        },
+        "webhookUri": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Valid Webhook URI for Automation runbook."
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter10/EventGrid",
+            "metadata": {
+                "description": "The location of resources, such as templates and DSC modules, that the template depends on."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Auto-generated token to access _artifactsLocation."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "deployments": "2018-05-01",
+            "resourceGroups": "2018-05-01",
+            "eventSubscriptions": "2018-09-15-preview"
+        },
+        "templatesUris": {
+            "additionalAutomationResources": "[concat(parameters('_artifactsLocation'), '/additional-automation-resources.json', parameters('_artifactsLocationSasToken'))]"
+        }
+    },
+    "resources": [
+        {
+            "name": "[parameters('resourceGroupName')]",
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "[variables('apiVersions').resourceGroups]",
+            "location": "[parameters('resourceGroupLocation')]",
+            "properties": {}
+        },
+        {
+            "dependsOn": [
+                "[parameters('resourceGroupName')]"
+            ],
+            "name": "additionalAutomationResourcesDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').additionalAutomationResources]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "automationAccountName": {
+                        "value": "[parameters('automationAccountName')]"
+                    },
+                    "webhookUri": {
+                        "value": "[parameters('webhookUri')]"
+                    }
+                }
+            }
+        },
+        {
+            "condition": "[not(empty(parameters('webhookUri')))]",
+            "name": "vmWrite",
+            "type": "Microsoft.EventGrid/eventSubscriptions",
+            "apiVersion": "[variables('apiVersions').eventSubscriptions]",
+            "properties": {
+                "topic": "[subscription().id]",
+                "destination": {
+                    "endpointType": "WebHook",
+                    "properties": {
+                        "endpointUrl": "[parameters('webhookUri')]"
+                    }
+                },
+                "filter": {
+                    "includedEventTypes": [
+                        "Microsoft.Resources.ResourceWriteSuccess"
+                    ],
+                    "advancedFilters": [
+                        {
+                            "operatorType": "StringContains",
+                            "key": "Subject",
+                            "values": [
+                                "Microsoft.Compute/virtualMachines"
+                            ]
+                        }
+                    ]
+                },
+                "eventDeliverySchema": "EventGridSchema",
+                "labels": [],
+                "retryPolicy": {
+                    "eventTimeToLiveInMinutes": 1440,
+                    "maxDeliveryAttempts": 30
+                }
+            },
+            "dependsOn": [
+                "additionalAutomationResourcesDeployment"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,113 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "automationAccountName": {
+        "type": "string",
+        "defaultValue": "",
+        "metadata": {
+          "description": "Assign a name for the Automation account"
+        }
+      },
+      "automationAccountRegion": {
+        "type": "string",
+        "defaultValue": "West Europe",
+        "allowedValues": [
+          "Japan East",
+          "East US 2",
+          "West Europe",
+          "Southeast Asia",
+          "South Central US",
+          "North Europe",
+          "Canada Central",
+          "Australia Southeast",
+          "Central India"
+        ],
+        "metadata": {
+          "description": "Specify the region for your Automation account"
+        }
+      },
+      "logAnalyticsWorkspaceName": {
+        "type": "string",
+        "defaultValue": "",
+        "metadata": {
+          "description": "Assign a name for the Log Analytics workspace"
+        }
+      }
+    },
+    "variables": {
+        "logAnalyticsRegion": "[if(equals(parameters('automationAccountRegion'),'East US 2'), 'East US', parameters('automationAccountRegion'))]",
+        "solutions": [
+            {
+                "name": "[concat('Updates', '(', parameters('logAnalyticsWorkspaceName'), ')')]",
+                "marketplaceName": "Updates"
+            }
+        ]
+    },
+    "resources": [
+      {
+        "apiVersion": "2015-10-31",
+        "location": "[parameters('automationAccountRegion')]",
+        "name": "[parameters('automationAccountName')]",
+        "type": "Microsoft.Automation/automationAccounts",
+        "comments": "Automation account for OMS",
+        "properties": {
+          "sku": {
+            "name": "Basic"
+          }
+        }
+      },
+      {
+        "name": "[parameters('logAnalyticsWorkspaceName')]",
+        
+        "apiVersion": "2015-11-01-preview",
+        "type": "Microsoft.OperationalInsights/workspaces",
+        "location": "[variables('logAnalyticsRegion')]",
+        "properties": {
+            "sku": {
+                "name": "PerNode"
+            }
+        },
+        "dependsOn": [
+            "[parameters('automationAccountName')]"
+        ],
+        "tags": {},
+        "resources": [
+            {
+                "name": "Automation",
+                "type": "linkedServices",
+                "apiVersion": "2015-11-01-preview",
+                "dependsOn": [
+                    "[parameters('logAnalyticsWorkspaceName')]"
+                ],
+                "properties": {
+                    "resourceId": "[resourceId('Microsoft.Automation/automationAccounts/', parameters('automationAccountName'))]"
+                }
+            }
+        ]
+      },
+      {
+        "apiVersion": "2015-11-01-preview",
+        "type": "Microsoft.OperationsManagement/solutions",
+        "name": "[concat(variables('solutions')[copyIndex()].Name)]",
+        "location": "[variables('logAnalyticsRegion')]",
+        "dependsOn": [
+            "[concat('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
+        ],
+        "copy": {
+            "name": "solutionCopy",
+            "count": "[length(variables('solutions'))]"
+        },
+        "properties": {
+            "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+        },
+        "plan": {
+            "name": "[variables('solutions')[copyIndex()].name]",
+            "product": "[concat('OMSGallery/', variables('solutions')[copyIndex()].marketplaceName)]",
+            "promotionCode": "",
+            "publisher": "Microsoft"
+        }
+    }
+    ],
+    "outputs": { }
+  }

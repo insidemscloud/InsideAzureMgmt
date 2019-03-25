@@ -1,0 +1,245 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "automationAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of azure automation account to be created."
+            }
+        },
+        "automationAccountLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the Azure Automation Account and Log Analytics Workspace. Must be valid location for both services."
+            }
+        },
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "the name of the log analytics workspace."
+            }
+        },
+        "dscConfigurationNameWindows": {
+            "type": "string",
+            "metadata": {
+                "description": "DSC configuration name"
+            }
+        },
+        "deploymentName": {
+            "type": "string",
+            "metadata": {
+                "description": "unique deployment name used to generate compilation Job id."
+            }
+        },
+        "domainAdministratorUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "domain administrator user name"
+            }
+        },
+        "domainAdministratorPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "domain administrator account password"
+            }
+        },
+        "safeModeAdministratorPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "safe mode administrator password"
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter11/dsc",
+            "metadata": {
+                "description": "The location of resources, such as templates and DSC modules, that the template depends on."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Auto-generated token to access _artifactsLocation."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "automationAccounts": "2018-01-15",
+            "runbooks": "2018-06-30",
+            "modules": "2018-01-15",
+            "configurations": "2015-10-31",
+            "compilationjobs": "2018-01-15",
+            "credentials": "2018-01-15",
+            "workspaces": "2015-11-01-preview",
+            "diagnosticSettings": "2017-05-01-preview"
+        },
+        "powerShellModulesBatch1": [
+            {
+                "Name": "xActiveDirectory",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/xactivedirectory.2.17.0.nupkg"
+            },
+            {
+                "Name": "xStorage",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/xstorage.3.4.0.nupkg"
+            },
+            {
+                "Name": "xPendingReboot",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/xpendingreboot.0.3.0.nupkg"
+            },
+            {
+                "Name": "xPSDesiredStateConfiguration",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/xpsdesiredstateconfiguration.8.2.0.nupkg"
+            },
+            {
+                "Name": "xTimeZone",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/xtimezone.1.8.0.nupkg"
+            }
+        ],
+        "dscConfigurationUriWindows": "[concat(parameters('_artifactsLocation'), '/DomainControllerConfig.ps1', parameters('_artifactsLocationSasToken'))]",
+        "compilationJobId": "[guid(concat(parameters('deploymentName'), parameters('dscConfigurationNameWindows')))]"
+    },
+    "resources": [
+        {
+            "name": "[parameters('logAnalyticsWorkspaceName')]",
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "[variables('apiVersions').workspaces]",
+            "location": "[parameters('automationAccountLocation')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                },
+                "retentionInDays": 31,
+                "features": {
+                    "legacy": 0,
+                    "searchVersion": 1
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Automation/automationAccounts",
+            "name": "[parameters('automationAccountName')]",
+            "apiVersion": "[variables('apiVersions').automationAccounts]",
+            "location": "[parameters('automationAccountLocation')]",
+            "properties": {
+                "comment": "",
+                "sku": {
+                    "name": "Basic"
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'), '/', 'Microsoft.Insights/service')]",
+            "type": "Microsoft.Automation/automationAccounts/providers/diagnosticSettings",
+            "apiVersion": "[variables('apiVersions').diagnosticSettings]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
+                "logs": [
+                    {
+                        "category": "JobLogs",
+                        "enabled": true
+                    },
+                    {
+                        "category": "JobStreams",
+                        "enabled": true
+                    },
+                    {
+                        "category": "DscNodeStatus",
+                        "enabled": true
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'), '/', variables('powerShellModulesBatch1')[copyIndex()].Name)]",
+            "type": "Microsoft.Automation/automationAccounts/modules",
+            "apiVersion": "[variables('apiVersions').modules]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "copy": {
+                "name": "powerShellModulesBatch1Copy",
+                "count": "[length(variables('powerShellModulesBatch1'))]",
+                "mode": "Serial",
+                "batchSize": 3
+            },
+            "properties": {
+                "contentLink": {
+                    "uri": "[variables('powerShellModulesBatch1')[copyIndex()].Uri]"
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'), '/', parameters('dscConfigurationNameWindows'))]",
+            "type": "Microsoft.Automation/automationAccounts/configurations",
+            "apiVersion": "[variables('apiVersions').configurations]",
+            "location": "[parameters('automationAccountLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "properties": {
+                "logVerbose": "false",
+                "description": "Configure Windows AD",
+                "state": "Published",
+                "overwrite": true,
+                "Source": {
+                    "type": "uri",
+                    "value": "[variables('dscConfigurationUriWindows')]",
+                    "version": "1.0.0"
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName') ,'/', 'DomainAdministratorCredentials')]",
+            "type": "Microsoft.Automation/automationAccounts/credentials",
+            "apiVersion": "[variables('apiVersions').credentials]",
+            "location": "[parameters('automationAccountLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "properties": {
+                "description": "Domain Administrator Credentials",
+                "password": "[parameters('domainAdministratorPassword')]",
+                "userName": "[parameters('domainAdministratorUserName')]"
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName') ,'/', 'SafeModeAdministratorCredentials')]",
+            "type": "Microsoft.Automation/automationAccounts/credentials",
+            "apiVersion": "[variables('apiVersions').credentials]",
+            "location": "[parameters('automationAccountLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "properties": {
+                "description": "Safe Mode Administrator Credentials",
+                "password": "[parameters('safeModeAdministratorPassword')]",
+                "userName": "[parameters('domainAdministratorUserName')]"
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'), '/', variables('compilationJobId'))]",
+            "type": "Microsoft.Automation/automationAccounts/compilationjobs",
+            "apiVersion": "[variables('apiVersions').compilationjobs]",
+            "location": "[parameters('automationAccountLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]",
+                "powerShellModulesBatch1Copy",
+                "[resourceId('Microsoft.Automation/automationAccounts/configurations', parameters('automationAccountName'), parameters('dscConfigurationNameWindows'))]",
+                "[resourceId('Microsoft.Automation/automationAccounts/credentials', parameters('automationAccountName'), 'SafeModeAdministratorCredentials')]",
+                "[resourceId('Microsoft.Automation/automationAccounts/credentials', parameters('automationAccountName'), 'DomainAdministratorCredentials')]"
+            ],
+            "properties": {
+                "configuration": {
+                    "name": "[parameters('dscConfigurationNameWindows')]"
+                }
+            }
+        }
+    ]
+}

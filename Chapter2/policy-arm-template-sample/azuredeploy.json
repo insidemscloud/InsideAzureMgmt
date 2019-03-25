@@ -1,0 +1,159 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "allowedAddressRanges": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+          "description": "The list of allowed IP address ranges (Allowed internet address ranges can be provided using CIDR notation in the form 16.17.18.0/24 or as individual IP addresses like 16.17.18.19)",
+          "displayName": "Address Range"
+      }
+    }
+  },
+  "variables": {
+    "restrictPublicStorageAccountInitiativeName": "enforce-storageAccount-firewall-rules-initiative",
+    "restrictPublicStorageAccountInitiativeAssignmentName": "enforce-storageAccount-firewall-rules-initiative-assignToSub",
+    "restrictPublicStorageAccountPolicyName": "restrict-public-storageAccounts",
+    "restrictStorageAccountFirewallRulesPolicyName": "restrict-storageAccount-firewall-rules",
+    "allowedAddressRangesParam": "[concat('[', 'parameters(''allowedAddressRanges'')', ']')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Authorization/policyDefinitions",
+      "name": "[variables('restrictStorageAccountFirewallRulesPolicyName')]",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "policyType": "Custom",
+        "displayName": "Restrict Storage Accounts firewall rules",
+        "description": "This policy restrict IP ranges used in Storage Accounts firewall rules",
+        "metadata": {
+          "category": "Storage"
+        },
+        "mode": "all",
+        "parameters": {
+          "allowedAddressRanges": {
+            "type": "array",
+            "metadata": {
+                "description": "The list of allowed IP address ranges (Allowed internet address ranges can be provided using CIDR notation in the form 16.17.18.0/24 or as individual IP addresses like 16.17.18.19)",
+                "displayName": "Address Range"
+            }
+          }
+        },
+        "policyRule": {
+          "if": {
+            "allOf": [
+              {
+                "field": "type",
+                "equals": "Microsoft.Storage/storageAccounts"
+              },
+              {
+                "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules[*].value",
+                "notEquals": ""
+              },
+              {
+                "not":{
+                    "field": "Microsoft.Storage/storageAccounts/networkAcls.ipRules[*].value",
+                    "in": "[variables('allowedAddressRangesParam')]"
+                }
+              }
+            ]
+          },
+          "then": {
+            "effect": "deny"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/policyDefinitions",
+      "name": "[variables('restrictPublicStorageAccountPolicyName')]",
+      "apiVersion": "2018-05-01",
+      "properties": {
+        "policyType": "Custom",
+        "displayName": "Restrict Public Storage Accounts",
+        "description": "This policy restrict creation of storage accounts that are not connected to a VNet Service Endpoint.",
+        "metadata": {
+          "category": "Storage"
+        },
+        "mode": "all",
+        "parameters": {},
+        "policyRule": {
+          "if": {
+            "allOf": [
+              {
+                "field": "type",
+                "equals": "Microsoft.Storage/storageAccounts"
+              },
+              {
+                "field": "Microsoft.Storage/storageAccounts/networkAcls.defaultAction",
+                "notequals": "Deny"
+              }
+            ]
+          },
+          "then": {
+            "effect": "deny"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/policySetDefinitions",
+      "name": "[variables('restrictPublicStorageAccountInitiativeName')]",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Authorization/policyDefinitions/', variables('restrictPublicStorageAccountPolicyName'))]",
+        "[resourceId('Microsoft.Authorization/policyDefinitions/', variables('restrictStorageAccountFirewallRulesPolicyName'))]"
+      ],
+      "properties": {
+        "displayName": "Restrict Public Storage Accounts Initiative",
+        "description": "This initiative restricts public storage accounts and their firewall rules.",
+        "metadata": {
+          "category": "Storage"
+        },
+        "parameters": {
+          "allowedAddressRanges": {
+            "type": "array",
+            "metadata": {
+                "description": "The list of allowed IP address ranges (Allowed internet address ranges can be provided using CIDR notation in the form 16.17.18.0/24 or as individual IP addresses like 16.17.18.19)",
+                "displayName": "Address Range"
+            }
+          }
+        },
+        "policyDefinitions": [
+          {
+            "policyDefinitionId": "[resourceId('Microsoft.Authorization/policyDefinitions/', variables('restrictPublicStorageAccountPolicyName'))]",
+            "parameters": {}
+          },
+          {
+            "policyDefinitionId": "[resourceId('Microsoft.Authorization/policyDefinitions/', variables('restrictStorageAccountFirewallRulesPolicyName'))]",
+            "parameters": {
+              "allowedAddressRanges": {
+                "value": "[variables('allowedAddressRangesParam')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/policyAssignments",
+      "name": "[variables('restrictPublicStorageAccountInitiativeAssignmentName')]",
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Authorization/policySetDefinitions/', variables('restrictPublicStorageAccountInitiativeName'))]"
+      ],
+      "properties": {
+        "scope": "[subscription().id]",
+        "displayName": "Restrict Public Storage Accounts Initiative - Subscription Level",
+        "policyDefinitionId": "[resourceId('Microsoft.Authorization/policySetDefinitions/', variables('restrictPublicStorageAccountInitiativeName'))]",
+        "parameters": {
+          "allowedAddressRanges": {
+            "value": "[parameters('allowedAddressRanges')]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}

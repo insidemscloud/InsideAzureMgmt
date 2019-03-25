@@ -1,0 +1,42 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "automationAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of azure automation account to be created."
+            }
+        },
+        "webhookUri": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Valid Webhook URI for Automation runbook."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "webhooks": "2015-10-31"
+        },
+        "webhookName": "UpdateVMTag"
+    },
+    "resources": [
+        {
+            "condition": "[not(empty(parameters('webhookUri')))]",
+            "type": "Microsoft.Automation/automationAccounts/webhooks",
+            "name": "[concat(parameters('automationAccountName'), '/', variables('webhookName'))]",
+            "apiVersion": "[variables('apiVersions').webhooks]",
+            "properties": {
+                "isEnabled": true,
+                "uri": "[parameters('webhookUri')]",
+                "expiryTime": "2028-12-19T12:26:28.776+00:00",
+                "runbook": {
+                    "name": "UpdateVMTag"
+                },
+                "parameters": null
+            }
+        }
+    ]
+}

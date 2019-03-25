@@ -1,0 +1,35 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "SubscriptionId": {
+            "type": "string",
+            "minLength": 36,
+            "maxLength": 36,
+            "metadata": {
+              "description": "The Azure Subscription Id."
+            }
+          },
+        "workspaceName": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "Log Analytics Workspace name"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "name": "[concat(parameters('workspaceName'), '/', parameters('subscriptionId'))]",
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "apiVersion": "2015-11-01-preview",
+            "dependsOn": [],
+            "kind": "AzureActivityLog",
+            "properties": {
+                "linkedResourceId": "[concat('/subscriptions/', parameters('subscriptionId'), '/providers/Microsoft.Insights/eventTypes/management')]"
+            }
+        }
+    ],
+    "outputs": {}
+}

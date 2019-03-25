@@ -1,0 +1,33 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "automationResourceGroupName": {
+            "value": "mgmt1"
+        },
+        "automationResourceGroupLocation": {
+            "value": "West Europe"
+        },
+        "automationAccountName": {
+            "value": "mgmtDemoA1"
+        },
+        "automationAccountLocation": {
+            "value": "West Europe"
+        },
+        "logAnalyticsWorkspaceName": {
+            "value": "mgmtDemoA1"
+        },
+        "domainAdministratorUserName": {
+            "value": "azroot"
+        },
+        "vmResourceGroupName": {
+            "value": "advm"
+        },
+        "vmResourceGroupLocation": {
+            "value": "West Europe"
+        },
+        "vmName": {
+            "value": "advm"
+        }
+    }
+}

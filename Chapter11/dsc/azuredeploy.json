@@ -1,0 +1,314 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "automationResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the resource group to be created for automation account."
+            }
+        },
+        "automationResourceGroupLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the resource group to be created for automation account."
+            }
+        },
+        "automationAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of azure automation account to be created."
+            }
+        },
+        "automationAccountLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the Azure Automation Account and Log Analytics Workspace. Must be valid location for both services."
+            }
+        },
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "the name of the log analytics workspace."
+            }
+        },
+        "domainAdministratorUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "domain administrator user name"
+            }
+        },
+        "domainAdministratorPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "domain administrator account password"
+            }
+        },
+        "safeModeAdministratorPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "safe mode administrator password"
+            }
+        },
+        "vmResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the resource group to be created for the Azure VM."
+            }
+        },
+        "vmResourceGroupLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the resource group to be created for the Azure VM."
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the domain controller VM."
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter11/dsc",
+            "metadata": {
+                "description": "The location of resources, such as templates and DSC modules, that the template depends on."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Auto-generated token to access _artifactsLocation."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "deployments": "2018-05-01",
+            "resourceGroups": "2018-05-01"
+        },
+        "templatesUris": {
+            "automationResources": "[concat(parameters('_artifactsLocation'), '/automation-resources.json', parameters('_artifactsLocationSasToken'))]",
+            "nsgAdSubnet": "[concat(parameters('_artifactsLocation'),'/nsg-adsubnet.json', parameters('_artifactsLocationSasToken'))]",
+            "vnet": "[concat(parameters('_artifactsLocation'),'/vnet.json', parameters('_artifactsLocationSasToken'))]",
+            "pdc": "[concat(parameters('_artifactsLocation'),'/pdc.json', parameters('_artifactsLocationSasToken'))]",
+            "vnetwithDNS": "[concat(parameters('_artifactsLocation'),'/vnet-with-dns-server.json', parameters('_artifactsLocationSasToken'))]"
+        },
+        "dscConfigurationNameWindows": "DomainControllerConfig",
+        "adSubnetName": "adSubnet",
+        "adSubnet": "10.0.0.0/24",
+        "virtualNetworkName": "adVNET",
+        "virtualNetworkAddressRange": "10.0.0.0/16",
+        "adVMSize": "Standard_D2_v3",
+        "adPDCNicIPAddress": "10.0.0.4"
+    },
+    "resources": [
+        {
+            "name": "[parameters('automationResourceGroupName')]",
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "[variables('apiVersions').resourceGroups]",
+            "location": "[parameters('automationResourceGroupLocation')]",
+            "properties": {}
+        },
+        {
+            "name": "[parameters('vmResourceGroupName')]",
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "[variables('apiVersions').resourceGroups]",
+            "location": "[parameters('vmResourceGroupLocation')]",
+            "properties": {}
+        },
+        {
+            "dependsOn": [
+                "[parameters('automationResourceGroupName')]"
+            ],
+            "name": "automationResourcesDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "resourceGroup": "[parameters('automationResourceGroupName')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').automationResources]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "automationAccountName": {
+                        "value": "[parameters('automationAccountName')]"
+                    },
+                    "automationAccountLocation": {
+                        "value": "[parameters('automationAccountLocation')]"
+                    },
+                    "dscConfigurationNameWindows": {
+                        "value": "[variables('dscConfigurationNameWindows')]"
+                    },
+                    "logAnalyticsWorkspaceName": {
+                        "value": "[parameters('logAnalyticsWorkspaceName')]"
+                    },
+                    "deploymentName": {
+                        "value": "[deployment().name]"
+                    },
+                    "domainAdministratorUserName": {
+                        "value": "[parameters('domainAdministratorUserName')]"
+                    },
+                    "domainAdministratorPassword": {
+                        "value": "[parameters('domainAdministratorPassword')]"
+                    },
+                    "safeModeAdministratorPassword": {
+                        "value": "[parameters('safeModeAdministratorPassword')]"
+                    },
+                    "_artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },
+                    "_artifactsLocationSasToken": {
+                        "value": "[parameters('_artifactsLocationSasToken')]"
+                    }
+                }
+            }
+        },
+        {
+            "dependsOn": [
+                "[parameters('vmResourceGroupName')]"
+            ],
+            "name": "CreateNSGAdSubnet",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "resourceGroup": "[parameters('vmResourceGroupName')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').nsgAdSubnet]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "adSubnetName": {
+                        "value": "[variables('adSubnetName')]"
+                    },
+                    "adSubnet": {
+                        "value": "[variables('adSubnet')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "ConfigureVNetNewForest",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "resourceGroup": "[parameters('vmResourceGroupName')]",
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', 'CreateNSGAdSubnet')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').vnet]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "virtualNetworkName": {
+                        "value": "[variables('virtualNetworkName')]"
+                    },
+                    "virtualNetworkAddressRange": {
+                        "value": "[variables('virtualNetworkAddressRange')]"
+                    },
+                    "subnetName": {
+                        "value": "[variables('adSubnetName')]"
+                    },
+                    "subnetRange": {
+                        "value": "[variables('adSubnet')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "DeployADPDCNewForest",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "resourceGroup": "[parameters('vmResourceGroupName')]",
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', 'ConfigureVNetNewForest')]",
+                "automationResourcesDeployment"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').pdc]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "adminUsername": {
+                        "value": "[parameters('domainAdministratorUserName')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('domainAdministratorPassword')]"
+                    },
+                    "adVMSize": {
+                        "value": "[variables('adVMSize')]"
+                    },
+                    "adPDCNicIPAddress": {
+                        "value": "[variables('adPDCNicIPAddress')]"
+                    },
+                    "virtualNetworkName": {
+                        "value": "[variables('virtualNetworkName')]"
+                    },
+                    "adSubnetName": {
+                        "value": "[variables('adSubnetName')]"
+                    },
+                    "adPDCNicName": {
+                        "value": "adPDCNic"
+                    },
+                    "automationResourceGroupName": {
+                        "value": "[parameters('automationResourceGroupName')]"
+                    },
+                    "automationAccountName": {
+                        "value": "[parameters('automationAccountName')]"
+                    },
+                    "nodeConfiguration": {
+                        "value": "[concat(variables('dscConfigurationNameWindows'), '.localhost')]"
+                    },
+                    "workspaceName": {
+                        "value": "[parameters('logAnalyticsWorkspaceName')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "UpdateVNetDNS1",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "resourceGroup": "[parameters('vmResourceGroupName')]",
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', 'DeployADPDCNewForest')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').vnetwithDNS]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "virtualNetworkName": {
+                        "value": "[variables('virtualNetworkName')]"
+                    },
+                    "virtualNetworkAddressRange": {
+                        "value": "[variables('virtualNetworkAddressRange')]"
+                    },
+                    "DNSServerAddress": {
+                        "value": [
+                            "[variables('adPDCNicIPAddress')]"
+                        ]
+                    },
+                    "subnetName": {
+                        "value": "[variables('adSubnetName')]"
+                    },
+                    "subnetRange": {
+                        "value": "[variables('adSubnet')]"
+                    }
+                }
+            }
+        }
+    ]
+}

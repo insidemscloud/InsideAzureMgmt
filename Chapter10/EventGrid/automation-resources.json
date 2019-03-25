@@ -1,0 +1,134 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "automationAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of azure automation account to be created."
+            }
+        },
+        "automationAccountLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the Azure Automation Account and Log Analytics Workspace. Must be valid location for both services."
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter10/EventGrid",
+            "metadata": {
+                "description": "The location of resources, such as templates and DSC modules, that the template depends on."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Auto-generated token to access _artifactsLocation."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "automationAccounts": "2018-01-15",
+            "runbooks": "2018-06-30",
+            "modules": "2018-01-15"
+        },
+        "powerShellModulesBatch1": [
+            {
+                "Name": "AzureRM.Profile",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.profile.5.8.2.nupkg"
+            }
+        ],
+        "powerShellModulesBatch2": [
+            {
+                "Name": "AzureRM.Resources",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.resources.6.7.3.nupkg"
+            },
+            {
+                "Name": "AzureRM.Compute",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.compute.5.9.1.nupkg"
+            },
+            {
+                "Name": "AzureRM.Automation",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.automation.6.1.1.nupkg"
+            },
+            {
+                "Name": "AzureRM.Tags",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.tags.4.0.5.nupkg"
+            }
+        ]
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Automation/automationAccounts",
+            "name": "[parameters('automationAccountName')]",
+            "apiVersion": "[variables('apiVersions').automationAccounts]",
+            "location": "[parameters('automationAccountLocation')]",
+            "properties": {
+                "comment": "",
+                "sku": {
+                    "name": "Basic"
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'), '/', variables('powerShellModulesBatch1')[copyIndex()].Name)]",
+            "type": "Microsoft.Automation/automationAccounts/modules",
+            "apiVersion": "[variables('apiVersions').modules]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "copy": {
+                "name": "powerShellModulesBatch1Copy",
+                "count": "[length(variables('powerShellModulesBatch1'))]"
+            },
+            "properties": {
+                "contentLink": {
+                    "uri": "[variables('powerShellModulesBatch1')[copyIndex()].Uri]"
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'), '/', variables('powerShellModulesBatch2')[copyIndex()].Name)]",
+            "type": "Microsoft.Automation/automationAccounts/modules",
+            "apiVersion": "[variables('apiVersions').modules]",
+            "dependsOn": [
+                "powerShellModulesBatch1Copy",
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "copy": {
+                "name": "powerShellModulesBatch2Copy",
+                "count": "[length(variables('powerShellModulesBatch2'))]",
+                "mode": "Serial",
+                "batchSize": 3
+            },
+            "properties": {
+                "contentLink": {
+                    "uri": "[variables('powerShellModulesBatch2')[copyIndex()].Uri]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Automation/automationAccounts/runbooks",
+            "name": "[concat(parameters('automationAccountName'), '/', 'UpdateVMTag')]",
+            "apiVersion": "[variables('apiVersions').runbooks]",
+            "location": "[parameters('automationAccountLocation')]",
+            "properties": {
+                "runbookType": "PowerShell",
+                "logProgress": false,
+                "logVerbose": false,
+                "logActivityTrace": 0,
+                "description": "Reactive Runbook on VM write log.",
+                "publishContentLink": {
+                    "uri": "[concat(parameters('_artifactsLocation' ), '/UpdateVMTag.ps1', parameters('_artifactsLocationSasToken'))]",
+                    "version": "1.0.0.0"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ]
+        }
+    ]
+}

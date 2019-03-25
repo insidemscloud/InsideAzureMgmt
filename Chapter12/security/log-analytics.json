@@ -1,0 +1,1220 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "Log Analytics workspace name"
+            }
+        },
+        "logAnalyticsWorkspaceLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "Log Analytics location"
+            }
+        },
+        "tier": {
+            "type": "string",
+            "allowedValues": [
+                "All",
+                "Recommended",
+                "Minimal",
+                "None"
+            ],
+            "metadata": {
+                "description": "Tier for gathering Windows Security Events."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "workspaces": "2017-03-15-preview",
+            "solutions": "2015-11-01-preview",
+            "dataSources": "2015-11-01-preview"
+        }
+    },
+    "resources": [
+        {
+            "comments": "Creates Log Analytics workspace.",
+            "name": "[parameters('logAnalyticsWorkspaceName')]",
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "[variables('apiVersions').workspaces]",
+            "location": "[parameters('logAnalyticsWorkspaceLocation')]",
+            "properties": {
+                "sku": {
+                    "name": "pergb2018"
+                },
+                "retentionInDays": 31,
+                "features": {
+                    "legacy": 0,
+                    "searchVersion": 1,
+                    "searchVersionUpgradeTime": ""
+                }
+            }
+        },
+        {
+            "comments": "Deploys Security solution needed for setting Log Analytics pricing related to ASC to Standard tier.",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
+            ],
+            "name": "[concat('Security(', parameters('logAnalyticsWorkspaceName'), ')')]",
+            "apiVersion": "[variables('apiVersions').solutions]",
+            "type": "Microsoft.OperationsManagement/solutions",
+            "location": "[parameters('logAnalyticsWorkspaceLocation')]",
+            "plan": {
+                "name": "[concat('Security(', parameters('logAnalyticsWorkspaceName'), ')')]",
+                "product": "OMSGallery/Security",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+            },
+            "properties": {
+                "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+            }
+        },
+        {
+            "comments": "SecurityCenterFree is needed only if you are in the Free tier but we deploy it anyway.",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
+            ],
+            "name": "[concat('SecurityCenterFree(', parameters('logAnalyticsWorkspaceName'), ')')]",
+            "apiVersion": "[variables('apiVersions').solutions]",
+            "type": "Microsoft.OperationsManagement/solutions",
+            "location": "[parameters('logAnalyticsWorkspaceLocation')]",
+            "plan": {
+                "name": "[concat('SecurityCenterFree(', parameters('logAnalyticsWorkspaceName'), ')')]",
+                "product": "OMSGallery/SecurityCenterFree",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+            },
+            "properties": {
+                "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+            }
+        },
+        {
+            "comments": "Sets the level of Windows Events that will be gathered.",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]",
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('Security(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'SecurityEventCollectionConfiguration')]",
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "kind": "SecurityEventCollectionConfiguration",
+            "properties": {
+                "tier": "[parameters('tier')]"
+            }
+        },
+        {
+            "comments": "Deploys Change Tracking for File Integrity Monitoring integration.",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
+            ],
+            "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
+            "apiVersion": "[variables('apiVersions').solutions]",
+            "type": "Microsoft.OperationsManagement/solutions",
+            "location": "[parameters('logAnalyticsWorkspaceLocation')]",
+            "plan": {
+                "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
+                "product": "OMSGallery/ChangeTracking",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+            },
+            "properties": {
+                "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters( 'logAnalyticsWorkspaceName'))]"
+            }
+        },
+        {
+            "comments": "Deploy Change Tracking settings from ASC.",
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'ChangeTrackingDataTypeConfiguration_Registry')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "kind": "ChangeTrackingDataTypeConfiguration",
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "DataTypeId": "Registry",
+                "Enabled": true
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDataTypeConfiguration",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'ChangeTrackingDataTypeConfiguration_Files')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "DataTypeId": "Files",
+                "Enabled": true
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDataTypeConfiguration",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'ChangeTrackingDataTypeConfiguration_Daemons')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "DataTypeId": "Daemons",
+                "Enabled": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDataTypeConfiguration",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'ChangeTrackingDataTypeConfiguration_WindowsServices')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "DataTypeId": "WindowsServices",
+                "Enabled": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDataTypeConfiguration",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'ChangeTrackingDataTypeConfiguration_Software')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "DataTypeId": "Software",
+                "Enabled": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDataTypeConfiguration",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'ChangeTrackingDataTypeConfiguration_Inventory')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "DataTypeId": "Inventory",
+                "Enabled": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_1')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\autoexec.bat",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_2')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\boot.ini",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_3')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\config.sys",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_4')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\Windows\\system.ini",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_5')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\Windows\\win.ini",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_6')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\Windows\\regedit.exe",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_7')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\Windows\\System32\\userinit.exe",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_8')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\Windows\\explorer.exe",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_WindowsFiles_9')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "checksum": "Sha256",
+                "path": "C:\\Program Files\\Microsoft Security Client\\msseces.exe",
+                "pathType": "File",
+                "recurse": false
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_1')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography\\OID\\EncodingType 0\\CryptSIPDllRemoveSignedDataMsg\\{C689AAB8-8E78-11D0-8C47-00C04FC295EE}",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_2')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography\\OID\\EncodingType 0\\CryptSIPDllRemoveSignedDataMsg\\{603BCC1F-4B59-4E08-B724-D2C6297EF351}",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_3')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\IniFileMapping\\SYSTEM.ini\\boot",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_4')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_5')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_6')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_7')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_8')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_9')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_10')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_11')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_12')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_13')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Cryptography\\OID\\EncodingType 0\\CryptSIPDllRemoveSignedDataMsg\\{C689AAB8-8E78-11D0-8C47-00C04FC295EE}",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_14')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Cryptography\\OID\\EncodingType 0\\CryptSIPDllRemoveSignedDataMsg\\{603BCC1F-4B59-4E08-B724-D2C6297EF351}",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_15')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows NT\\CurrentVersion\\IniFileMapping\\system.ini\\boot",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_16')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_17')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_18')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_19')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_20')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_21')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_22')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_23')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\RunServices",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_24')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_25')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\hivelist",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_26')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_27')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\DomainProfile",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_28')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingDefaultRegistry",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_Registry_29')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "keyName": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\StandardProfile",
+                "recurse": false,
+                "valueName": ""
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_1')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/bin/login",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "File",
+                "type": "File",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_2')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/bin/passwd",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "File",
+                "type": "File",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_3')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/etc/*.conf",
+                "useSudo": true,
+                "recurse": true,
+                "maxContentsReturnable": 0,
+                "pathType": "File",
+                "type": "File",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_4')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/usr/bin",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_5')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/usr/sbin",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_6')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/bin",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_7')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/sbin",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_8')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/boot",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_9')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/usr/local/bin",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_10')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/usr/local/sbin",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_11')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/opt/bin",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_12')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/opt/sbin",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_13')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/etc/crontab",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "File",
+                "type": "File",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_14')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/etc/init.d",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_15')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/etc/cron.hourly",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_16')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/etc/cron.daily",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_17')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/etc/cron.weekly",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/dataSources",
+            "kind": "ChangeTrackingLinuxPath",
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'FIM_LinuxFiles_18')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions/', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "apiVersion": "[variables('apiVersions').dataSources]",
+            "properties": {
+                "enabled": true,
+                "groupTag": "Security",
+                "destinationPath": "/etc/cron.monthly",
+                "useSudo": true,
+                "recurse": false,
+                "maxContentsReturnable": 0,
+                "pathType": "Directory",
+                "type": "Directory",
+                "links": "Follow",
+                "checksum": "Sha256",
+                "maxOutputSize": 5000000
+            }
+        }
+    ]
+}

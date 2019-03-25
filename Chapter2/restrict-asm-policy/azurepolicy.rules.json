@@ -1,0 +1,9 @@
+{
+    "if": {
+        "field": "type",
+        "like": "Microsoft.Classic*"
+    },
+    "then": {
+        "effect": "Deny"
+    }
+}

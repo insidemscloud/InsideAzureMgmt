@@ -1,0 +1,15 @@
+
+{
+	"costCenter": {
+		"type": "String",
+		"metadata": {
+			"displayName": "Value for the Cost Center tag"
+		}
+	},
+	"appName": {
+		"type": "String",
+		"metadata": {
+			"displayName": "value for App Name tag"
+		}
+	}
+}

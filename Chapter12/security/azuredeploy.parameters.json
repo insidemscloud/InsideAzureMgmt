@@ -1,0 +1,24 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "logAnalyticsSubscription": {
+            "value": "3c1d68a5-4064-4522-94e4-e0378165922e"
+        },
+        "logAnalyticsResourceGroupName": {
+            "value": "OMS1"
+        },
+        "logAnalyticsWorkspaceName": {
+            "value": "test-stan1"
+        },
+        "logAnalyticsWorkspaceLocation": {
+            "value": "East US"
+        },
+        "securityContactMail": {
+            "value": "stan@outlook.com"
+        },
+        "securityContactPhone": {
+            "value": "+359"
+        }
+    }
+}

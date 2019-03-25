@@ -1,0 +1,236 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmName": {
+            "type": "string",
+            "metadata": {
+                "description": "The vm name for the Primary Domain Controller."
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the domain administrator."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password for the Administrator account of the new Domain."
+            }
+        },
+        "adVMSize": {
+            "type": "string",
+            "metadata": {
+                "description": "The VM size of the domain controller."
+            },
+            "defaultValue": "Standard_DS2_v2"
+        },
+        "adPDCNicIPAddress": {
+            "type": "string",
+            "metadata": {
+                "description": "The private IP address for the Primary Domain Controller."
+            },
+            "defaultValue": "10.0.0.4"
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "metadata": {
+                "description": "The vNet name for the domain controllers."
+            },
+            "defaultValue": "adVNET"
+        },
+        "adSubnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "The subnet name for the domain controllers."
+            },
+            "defaultValue": "adSubnet"
+        },
+        "adPDCNicName": {
+            "type": "string",
+            "metadata": {
+                "description": "The nic name for the primary domain controllers."
+            },
+            "defaultValue": "adPDCNic"
+        },
+        "automationResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the resource group to be created."
+            }
+        },
+        "automationAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of azure automation account to be created."
+            }
+        },
+        "nodeConfiguration": {
+            "type": "string",
+            "metadata": {
+                "description": "dsc node configuration name."
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "the log analytics workspace name."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "networkInterfaces": "2017-08-01",
+            "disks": "2017-03-30",
+            "virtualMachines": "2017-03-30",
+            "vmExtensions": "2018-04-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "[parameters('adPDCNicName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "[variables('apiVersions').networkInterfaces]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[parameters('adPDCNicIPAddress')]",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName') , parameters('adSubnetName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/disks",
+            "name": "[concat(parameters('vmName'), '-dataDisk1')]",
+            "apiVersion": "[variables('apiVersions').disks]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "properties": {
+                "creationData": {
+                    "createOption": "Empty"
+                },
+                "diskSizeGB": 32
+            }
+        },
+        {
+            "name": "[parameters('vmName')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "[variables('apiVersions').virtualMachines]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces',parameters('adPDCNicName'))]",
+                "[resourceId('Microsoft.Compute/disks', concat(parameters('vmName'), '-dataDisk1'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('adVMSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('vmName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2016-Datacenter-smalldisk",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(parameters('vmName'), '-osDisk')]",
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"
+                        }
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "managedDisk": {
+                                "id": "[resourceId('Microsoft.Compute/disks', concat(parameters('vmName'), '-dataDisk1'))]"
+                            },
+                            "caching": "None",
+                            "createOption": "Attach"
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('adPDCNicName'))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('vmName'),'/LAExtension')]",
+            "apiVersion": "[variables('apiVersions').vmExtensions]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.EnterpriseCloud.Monitoring",
+                "type": "MicrosoftMonitoringAgent",
+                "typeHandlerVersion": "1.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "workspaceId": "[reference(resourceId(parameters('automationResourceGroupName'), 'Microsoft.OperationalInsights/workspaces/', parameters('workspaceName')), '2015-11-01-preview').customerId]"
+                },
+                "protectedSettings": {
+                    "workspaceKey": "[listKeys(resourceId(parameters('automationResourceGroupName'), 'Microsoft.OperationalInsights/workspaces/', parameters('workspaceName')), '2015-11-01-preview').primarySharedKey]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('vmName'),'/Microsoft.Powershell.DSC')]",
+            "apiVersion": "[variables('apiVersions').vmExtensions]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vmName'), 'LAExtension')]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.76",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "configurationArguments": {
+                        "RegistrationUrl": "[reference(resourceId(parameters('automationResourceGroupName'), 'Microsoft.Automation/automationAccounts', parameters('automationAccountName')), '2018-01-15').registrationUrl]",
+                        "NodeConfigurationName": "[parameters('nodeConfiguration')]",
+                        "ConfigurationMode": "ApplyandAutoCorrect",
+                        "RefreshFrequencyMins": 30,
+                        "ConfigurationModeFrequencyMins": 15,
+                        "RebootNodeIfNeeded": true,
+                        "ActionAfterReboot": "ContinueConfiguration",
+                        "AllowModuleOverwrite": true
+                    }
+                },
+                "protectedSettings": {
+                    "configurationArguments": {
+                        "RegistrationKey": {
+                            "userName": "NOT_USED",
+                            "Password": "[listKeys(resourceId(parameters('automationResourceGroupName'), 'Microsoft.Automation/automationAccounts/', parameters('automationAccountName')), '2018-01-15').Keys[0].value]"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,55 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {
+        "action-groups": [
+            {
+                "name": "action-group-securityalerts",
+                "shortName": "secAlerts",
+                "emailAddress": "your@email.com"
+            },
+            {
+                "name": "action-group-networkalerts",
+                "shortName": "ntwkAlerts",
+                "emailAddress": "your@email.com"
+            }
+        ]
+    },
+    "resources": [
+        {
+            "comments": "Action Group",
+            "type": "microsoft.insights/actionGroups",
+            "name": "[variables('action-groups')[copyIndex()].name]",
+            "copy": {
+                "name": "actionGroupLoop",
+                "count": "[length(variables('action-groups'))]"
+            },
+            "apiVersion": "2018-09-01",
+            "location": "Global",
+            "tags": {},
+            "scale": null,
+            "properties": {
+                "groupShortName": "[variables('action-groups')[copyIndex()].shortName]",
+                "enabled": true,
+                "emailReceivers": [
+                    {
+                        "name": "[variables('action-groups')[copyIndex()].shortName]",
+                        "emailAddress": "[variables('action-groups')[copyIndex()].emailAddress]"
+                    }
+                ],
+                "smsReceivers": [],
+                "webhookReceivers": [],
+                "itsmReceivers":[],
+                "azureAppPushReceivers": [],
+                "automationRunbookReceivers": [],
+                "voiceReceivers":[],
+                "logicAppReceivers":[],
+                "azureFunctionReceivers":[],
+                "armRoleReceivers":[]
+            },
+            "dependsOn": []
+        }
+    ],
+    "outputs": {}
+}

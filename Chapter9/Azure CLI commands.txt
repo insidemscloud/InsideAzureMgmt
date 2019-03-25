@@ -1,0 +1,36 @@
+
+# The following use your default Azure subscription unless you specify otherwise! 
+
+# Create a new resource group
+az group create --name InsideAzureK8s --location eastus
+
+# Deploy an AKS Cluster AND new Resource Group
+az aks create \
+    --resource-group InsideAzureK8s \
+    --name myAKSCluster \
+    --node-count 3 \
+    --enable-addons monitoring \
+    --generate-ssh-keys
+
+# or a single line 
+   az aks create --resource-group InsideAzureK8s --name myAKSCluster --node-count 3 --enable-addons monitoring --generate-ssh-keys
+
+# Finding Log Analytics workspace resource ID 
+
+# Creating an AKS cluster and pointing to an existing Log Analytics workspace.
+
+az aks create \
+    --resource-group InsideAzureK8s \
+    --name myAKSCluster \
+    --node-count 3 \
+    --enable-addons monitoring \
+    --generate-ssh-keys
+	--workspace-resource-id <your LA workspace ID>
+
+# downloads credentials and configures the Kubernetes CLI to use them
+ sudo az aks get-credentials --resource-group InsideAzureK8s --name myAKSCluster
+
+    produces output 
+    Merged "myAKSCluster" as current context in /home/pete/.kube/config
+
+    az aks enable-addons -a monitoring -n myAKSCluster -g InsideAzureK8s  
