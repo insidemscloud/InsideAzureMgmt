@@ -11,7 +11,7 @@
         "workspaceResourceId": {
             "type": "string",
             "metadata": {
-                "description": "resource Id of the OMS workspace where the metrics and diagnostic logs are sent to."
+                "description": "resource Id of the Log Analytics workspace where the metrics and diagnostic logs are sent to."
             }
         }
     },

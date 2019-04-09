@@ -50,7 +50,7 @@
         "location": "[parameters('automationAccountRegion')]",
         "name": "[parameters('automationAccountName')]",
         "type": "Microsoft.Automation/automationAccounts",
-        "comments": "Automation account for OMS",
+        "comments": "Automation account linked to Log Analytics workspace",
         "properties": {
           "sku": {
             "name": "Basic"

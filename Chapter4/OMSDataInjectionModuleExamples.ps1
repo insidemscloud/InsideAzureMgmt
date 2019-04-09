@@ -6,29 +6,29 @@ $WorkspaceId = '5663c362-509d-4283-b0e8-c5f755e70db8'
 $ObjProperties = @{
   Computer = $env:COMPUTERNAME
   Username = $env:USERNAME
-  Message  = 'This is a test message #1 injected for the Inside OMS book demo.'
+  Message  = 'This is a test message #1 injected for the Inside Azure Management book demo.'
   LogTime  = [Datetime]::UtcNow
 }
-$OMSDataObject = New-Object -TypeName PSObject -Property $ObjProperties
-$IndividualInject = New-OMSDataInjection -OMSWorkSpaceId $WorkspaceId -PrimaryKey $PrimaryKey -LogType 'InsideOMSBookDemo' -UTCTimeStampField 'LogTime' -OMSDataObject $OMSDataObject
+$DataObject = New-Object -TypeName PSObject -Property $ObjProperties
+$IndividualInject = New-OMSDataInjection -OMSWorkSpaceId $WorkspaceId -PrimaryKey $PrimaryKey -LogType 'InsideAzureMgmtBookDemo' -UTCTimeStampField 'LogTime' -OMSDataObject $DataObject
 
 #Batch insert
-$arrOMSDataObjects = @()
+$arrDataObjects = @()
 $ObjProperties1 = @{
   Computer = $env:COMPUTERNAME
   Username = $env:USERNAME
-  Message  = 'This is test message #2 injected for the Inside OMS book demo.'
+  Message  = 'This is test message #2 injected for the Inside Azure Management book demo.'
   LogTime  = [Datetime]::UtcNow
 }
-$OMSDataObject1 = New-Object -TypeName PSObject -Property $ObjProperties1
-$arrOMSDataObjects += $OMSDataObject1
+$DataObject1 = New-Object -TypeName PSObject -Property $ObjProperties1
+$arrDataObjects += $DataObject1
     
 $ObjProperties2 = @{
   Computer = $env:COMPUTERNAME
   Username = $env:USERNAME
-  Message  = 'This is test message #3 injected for the Inside OMS book demo.'
+  Message  = 'This is test message #3 injected for the Inside Azure Management book demo.'
   LogTime  = [Datetime]::UtcNow
 }
-$OMSDataObject2 = New-Object -TypeName PSObject -Property $ObjProperties2
-$arrOMSDataObjects += $OMSDataObject2
-$InjectData = New-OMSDataInjection -OMSWorkSpaceId $WorkspaceId -PrimaryKey $PrimaryKey -LogType 'InsideOMSBookDemo' -UTCTimeStampField 'LogTime' -OMSDataObject $arrOMSDataObjects
+$DataObject2 = New-Object -TypeName PSObject -Property $ObjProperties2
+$arrDataObjects += $DataObject2
+$InjectData = New-OMSDataInjection -OMSWorkSpaceId $WorkspaceId -PrimaryKey $PrimaryKey -LogType 'InsideAzureMgmtBookDemo' -UTCTimeStampField 'LogTime' -OMSDataObject $arrDataObjects
