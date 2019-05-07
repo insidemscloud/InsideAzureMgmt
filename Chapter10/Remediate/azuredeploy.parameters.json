@@ -9,13 +9,13 @@
             "value": "West Europe"
         },
         "automationAccountName": {
-            "value": "mgmtDemoA"
+            "value": "mgmtDemoA2"
         },
         "automationAccountLocation": {
             "value": "West Europe"
         },
         "logAnalyticsWorkspaceName": {
-            "value": "mgmtDemoW"
+            "value": "mgmtDemoW2"
         }
     }
 }
