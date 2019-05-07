@@ -8,7 +8,7 @@ param
 )
 
 
-if(Get-AzureRmContext)
+if(Get-AzContext)
 {
     $selectSubscriptionParams = @{
         SubscriptionId = $SubscriptionId
@@ -18,11 +18,11 @@ if(Get-AzureRmContext)
     {
         $selectSubscriptionParams.Add('TenantId', $TenantId)
     }
-    Select-AzureRmSubscription @selectSubscriptionParams
+    Select-AzSubscription @selectSubscriptionParams
 }
 else
 {
-    Connect-AzureRmAccount -ErrorAction Stop
+    Connect-AzAccount -ErrorAction Stop
 
     $selectSubscriptionParams = @{
         SubscriptionId = $SubscriptionId
@@ -33,7 +33,7 @@ else
         $selectSubscriptionParams.Add('TenantId', $TenantId)
     }
 
-    Select-AzureRmSubscription @selectSubscriptionParams
+    Select-AzSubscription @selectSubscriptionParams
 }
 
 $firstDeploymentParams = @{
@@ -45,4 +45,4 @@ $firstDeploymentParams = @{
     Verbose = $true
     ErrorAction = 'Stop'
 }
-New-AzureRmDeployment @firstDeploymentParams
+New-AzDeployment @firstDeploymentParams
