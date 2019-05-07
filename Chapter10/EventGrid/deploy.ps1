@@ -8,7 +8,7 @@ param
 )
 
 
-if(Get-AzContext)
+if(Get-AzContext | Where-Object {$_.Subscription.Id -eq $SubscriptionId})
 {
     $selectSubscriptionParams = @{
         SubscriptionId = $SubscriptionId

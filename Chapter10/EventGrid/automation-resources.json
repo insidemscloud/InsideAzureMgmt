@@ -53,10 +53,6 @@
             {
                 "Name": "Az.Automation",
                 "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/az.automation.1.2.1.nupkg"
-            },
-            {
-                "Name": "Az.Tags",
-                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/az.tags.0.7.0.nupkg"
             }
         ]
     },
