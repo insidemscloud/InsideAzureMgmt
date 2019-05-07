@@ -101,7 +101,8 @@
                         "webhookResourceId": "[resourceId('Microsoft.Automation/automationAccounts/webhooks', parameters('automationAccountName'), variables('webhookName'))]",
                         "isGlobalRunbook": false,
                         "name": "Runbook",
-                        "serviceUri": "[parameters('webhookUri')]"
+                        "serviceUri": "[parameters('webhookUri')]",
+                        "useCommonAlertSchema": false
                     }
                 ],
                 "voiceReceivers": [],

@@ -57,7 +57,7 @@ try
         ResourceType = "Microsoft.Automation/automationAccounts/webhooks"
         ResourceGroupName = $automationAccountResourceGroup
         ApiVersion = '2015-10-31'
-        ErrorAction = 'SilentlyContinue'
+        ErrorAction = 'Stop'
     }
     Get-AzResource @getWebhookParams | Out-Null
     $webhookUri = ""
