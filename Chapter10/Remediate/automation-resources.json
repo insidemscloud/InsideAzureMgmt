@@ -62,7 +62,7 @@
             },
             {
                 "Name": "Az.Automation",
-                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.automation.1.2.1.nupkg"
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/az.automation.1.2.1.nupkg"
             }
         ]
     },
