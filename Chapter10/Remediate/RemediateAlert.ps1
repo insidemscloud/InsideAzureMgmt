@@ -70,7 +70,7 @@ if ($WebhookData)
         # This is the original Metric Alert schema
         Write-Error "The alert data schema - $schemaId - is not supported."
     }
-    elseif ($schemaId -eq "unknown")
+    elseif ($schemaId -eq "Microsoft.Insights/LogAlert")
     {
         # This is the Log Analytics Search Schema
         $alertName = $webhookBody.data.AlertRuleName
