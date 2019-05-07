@@ -22,7 +22,7 @@
         },
         "_artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/slavizh/InsideAzureMgmt-1/master/Chapter10/Remediate",
+            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter10/Remediate",
             "metadata": {
                 "description": "The location of resources, such as templates and DSC modules, that the template depends on."
             }
@@ -203,7 +203,7 @@
                 "description": "Remediation runbook",
                 "publishContentLink": {
                     "uri": "[concat(parameters('_artifactsLocation' ), '/RemediateAlert.ps1', parameters('_artifactsLocationSasToken'))]",
-                    "version": "1.0.0.0"
+                    "version": "2.0.0.0"
                 }
             },
             "dependsOn": [

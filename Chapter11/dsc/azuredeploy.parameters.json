@@ -9,13 +9,13 @@
             "value": "West Europe"
         },
         "automationAccountName": {
-            "value": "mgmtDemoA1"
+            "value": "mgmtDemoA12"
         },
         "automationAccountLocation": {
             "value": "West Europe"
         },
         "logAnalyticsWorkspaceName": {
-            "value": "mgmtDemoA1"
+            "value": "mgmtDemoA12"
         },
         "domainAdministratorUserName": {
             "value": "azroot"
