@@ -117,7 +117,7 @@
             "name": "Windows Service Stopped",
             "type": "Microsoft.Insights/scheduledQueryRules",
             "apiVersion": "[variables('apiVersions').scheduledQueryRules]",
-            "location": "[variables('logAnalyticsLocations')[parameters('automationAccountLocation')]]",
+            "location": "[variables('logAnalyticsLocations')[resourceGroup().location]]",
             "properties": {
                 "description": "Notifies on Windows Services Stopped.",
                 "enabled": "true",
