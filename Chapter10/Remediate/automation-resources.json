@@ -83,7 +83,7 @@
             "type": "Microsoft.OperationalInsights/workspaces",
             "name": "[parameters('logAnalyticsWorkspaceName')]",
             "apiVersion": "[variables('apiVersions').workspaces]",
-            "location": "[parameters('automationAccountLocation')]",
+            "location": "[resourceGroup().location]",
             "properties": {
                 "sku": {
                     "name": "pergb2018"
