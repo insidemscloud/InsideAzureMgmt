@@ -95,7 +95,7 @@
             "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'Automation')]",
             "type": "Microsoft.OperationalInsights/workspaces/linkedServices",
             "apiVersion": "[variables('apiVersions').linkedServices]",
-            "location": "[parameters('automationAccountLocation')]",
+            "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
                 "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
@@ -108,7 +108,7 @@
             "name": "[concat('AzureAutomation(', parameters('logAnalyticsWorkspaceName'), ')')]",
             "apiVersion": "[variables('apiVersions').solutions]",
             "type": "Microsoft.OperationsManagement/solutions",
-            "location": "[parameters( 'automationAccountLocation' )]",
+            "location": "[resourceGroup().location]",
             "plan": {
                 "name": "[concat('AzureAutomation(', parameters('logAnalyticsWorkspaceName'), ')')]",
                 "product": "OMSGallery/AzureAutomation",
@@ -126,7 +126,7 @@
             "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
             "apiVersion": "[variables('apiVersions').solutions]",
             "type": "Microsoft.OperationsManagement/solutions",
-            "location": "[parameters('automationAccountLocation')]",
+            "location": "[resourceGroup().location]",
             "plan": {
                 "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
                 "product": "OMSGallery/ChangeTracking",
