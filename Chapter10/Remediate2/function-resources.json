@@ -88,7 +88,7 @@
         {
             "name": "[parameters('planName')]",
             "type": "Microsoft.Web/serverfarms",
-            "apiVersion": "[variables('apiVersions').storageAccounts]",
+            "apiVersion": "[variables('apiVersions').serverfarms]",
             "location": "[resourceGroup().location]",
             "sku": {
                 "name": "Y1",
