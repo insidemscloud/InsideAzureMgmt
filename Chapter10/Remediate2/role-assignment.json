@@ -34,7 +34,7 @@
             "apiVersion": "[variables('apiVersions').roleAssignments]",
             "properties": {
                 "roleDefinitionId": "[parameters('roleDefinitionId')]",
-                "principalId": "[reference(resourceId(parameters('resourceGroupName'), 'Microsoft.Web/sites', parameters('siteName')), variables('apiVersions').sites, 'Full').identity.principalId]",
+                "principalId": "[reference(resourceId(subscription().subscriptionId, parameters('resourceGroupName'), 'Microsoft.Web/sites', parameters('siteName')), variables('apiVersions').sites, 'Full').identity.principalId]",
                 "principalType": "ServicePrincipal"
             }
         }
