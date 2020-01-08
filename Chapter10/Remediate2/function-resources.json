@@ -369,5 +369,11 @@
                 "hostNameType": "Verified"
             }
         }
-    ]
+    ],
+    "outputs": {
+        "principalId": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Web/sites', parameters('siteName')), variables('apiVersions').sites, 'Full').identity.principalId]"
+        }
+    }
 }

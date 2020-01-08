@@ -8,6 +8,12 @@
                 "description": "The resource id of the role Definition"
             }
         },
+        "principalId": {
+            "type": "string",
+            "metadata": {
+                "description": "the object id of the MSI"
+            }
+        },
         "siteName": {
             "type": "string",
             "metadata": {
@@ -29,12 +35,12 @@
     },
     "resources": [
         {
-            "name": "[guid(concat(parameters('roleDefinitionId'), parameters('resourceGroupName'), parameters('siteName')))]",
+            "name": "[guid(concat(parameters('roleDefinitionId'), parameters('resourceGroupName'), parameters('principalId'), parameters('siteName')))]",
             "type": "Microsoft.Authorization/roleAssignments",
             "apiVersion": "[variables('apiVersions').roleAssignments]",
             "properties": {
                 "roleDefinitionId": "[parameters('roleDefinitionId')]",
-                "principalId": "[reference(resourceId(subscription().subscriptionId, parameters('resourceGroupName'), 'Microsoft.Web/sites', parameters('siteName')), variables('apiVersions').sites, 'Full').identity.principalId]",
+                "principalId": "[parameters('principalId')]",
                 "principalType": "ServicePrincipal"
             }
         }
