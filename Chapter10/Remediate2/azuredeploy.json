@@ -63,7 +63,7 @@
     },
     "variables": {
         "apiVersions": {
-            "deployments": "2018-05-01",
+            "deployments": "2019-05-01",
             "resourceGroups": "2018-05-01"
         },
         "templatesUris": {
