@@ -1,61 +1,82 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "automationAccountName": {
-            "type": "string",
-            "metadata": {
-                "description": "The name of azure automation account to be created."
-            }
-        },
-        "automationAccountLocation": {
-            "type": "string",
-            "metadata": {
-                "description": "The location of the Azure Automation Account and Log Analytics Workspace. Must be valid location for both services."
-            }
-        },
         "logAnalyticsWorkspaceName": {
             "type": "string",
             "metadata": {
                 "description": "The name of the Log Analytics Workspace to be created."
             }
         },
-        "webhookUri": {
-            "type": "securestring",
-            "defaultValue": "",
+        "siteName": {
+            "type": "string",
             "metadata": {
-                "description": "Valid Webhook URI for Automation runbook."
+                "description": "The name of the web site where the function will reside."
+            }
+        },
+        "functionName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of function that will be deployed"
             }
         }
     },
     "variables": {
         "apiVersions": {
-            "webhooks": "2015-10-31",
-            "actionGroups": "2018-03-01",
-            "scheduledQueryRules": "2018-04-16"
+            "actionGroups": "2019-06-01",
+            "scheduledQueryRules": "2018-04-16",
+            "workspaces": "2017-03-15-preview",
+            "solutions": "2015-11-01-preview",
+            "datasources": "2015-11-01-preview",
+            "functions": "2019-08-01"
         },
         "hiddenLinkTag": "[json(concat('{\"hidden-link:/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'), '\": \"Resource\"}'))]",
-        "webhookName": "RemediateAlert",
         "actionGroupName": "mgmtDemo"
     },
     "resources": [
         {
-            "condition": "[not(empty(parameters('webhookUri')))]",
-            "type": "Microsoft.Automation/automationAccounts/webhooks",
-            "name": "[concat(parameters('automationAccountName'), '/', variables('webhookName'))]",
-            "apiVersion": "[variables('apiVersions').webhooks]",
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "name": "[parameters('logAnalyticsWorkspaceName')]",
+            "apiVersion": "[variables('apiVersions').workspaces]",
+            "location": "[resourceGroup().location]",
             "properties": {
-                "isEnabled": true,
-                "uri": "[parameters('webhookUri')]",
-                "expiryTime": "2028-12-19T12:26:28.776+00:00",
-                "runbook": {
-                    "name": "RemediateAlert"
+                "sku": {
+                    "name": "pergb2018"
                 },
-                "parameters": null
+                "retentionInDays": 30
             }
         },
         {
-            "condition": "[not(empty(parameters('webhookUri')))]",
+            "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
+            "apiVersion": "[variables('apiVersions').solutions]",
+            "type": "Microsoft.OperationsManagement/solutions",
+            "location": "[resourceGroup().location]",
+            "plan": {
+                "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
+                "product": "OMSGallery/ChangeTracking",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+            },
+            "properties": {
+                "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'ChangeTrackingServices_CollectionFrequency')]",
+            "type": "Microsoft.OperationalInsights/workspaces/datasources",
+            "apiVersion": "[variables('apiVersions').datasources]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "kind": "ChangeTrackingServices",
+            "properties": {
+                "CollectionTimeInterval": 10
+            }
+        },
+        {
             "type": "Microsoft.Insights/actionGroups",
             "name": "[variables('actionGroupName')]",
             "apiVersion": "[variables('apiVersions').actionGroups]",
@@ -68,24 +89,19 @@
                 "webhookReceivers": [],
                 "itsmReceivers": [],
                 "azureAppPushReceivers": [],
-                "automationRunbookReceivers": [
-                    {
-                        "automationAccountId": "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]",
-                        "runbookName": "RemediateAlert",
-                        "webhookResourceId": "[resourceId('Microsoft.Automation/automationAccounts/webhooks', parameters('automationAccountName'), variables('webhookName'))]",
-                        "isGlobalRunbook": false,
-                        "name": "Runbook",
-                        "serviceUri": "[parameters('webhookUri')]",
-                        "useCommonAlertSchema": false
-                    }
-                ],
+                "automationRunbookReceivers": [],
                 "voiceReceivers": [],
                 "logicAppReceivers": [],
-                "azureFunctionReceivers": []
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts/webhooks', parameters('automationAccountName'), variables('webhookName'))]"
-            ]
+                "azureFunctionReceivers": [
+                    {
+                        "name": "remediateFunction",
+                        "functionAppResourceId": "[listsecrets(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions).trigger_url]",
+                        "functionName": "[parameters('functionName')]",
+                        "httpTriggerUrl": "",
+                        "useCommonAlertSchema": true
+                    }
+                ]
+            }
         },
         {
             "name": "Windows Service Stopped",
@@ -127,7 +143,8 @@
                 }
             },
             "dependsOn": [
-                "[resourceId('microsoft.insights/actionGroups', variables('actionGroupName'))]"
+                "[resourceId('microsoft.insights/actionGroups', variables('actionGroupName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
             ]
         }
     ]
