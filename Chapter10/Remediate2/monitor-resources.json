@@ -93,13 +93,13 @@
                 "voiceReceivers": [],
                 "logicAppReceivers": [],
                 "azureFunctionReceivers": [
-                    {
-                        "name": "remediateFunction",
-                        "functionAppResourceId": "[concat( reference(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions, 'Full' ).properties.invoke_url_template, '?code=', listkeys(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions).default )]",
-                        "functionName": "[parameters('functionName')]",
-                        "httpTriggerUrl": "",
-                        "useCommonAlertSchema": true
-                    }
+                    //{
+                    //    "name": "remediateFunction",
+                    //    "functionAppResourceId": "[concat( reference(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions, 'Full' ).properties.invoke_url_template, '?code=', listkeys(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions).default )]",
+                    //    "functionName": "[parameters('functionName')]",
+                    //    "httpTriggerUrl": "",
+                    //    "useCommonAlertSchema": true
+                    //}
                 ]
             }
         },
@@ -147,5 +147,11 @@
                 "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
             ]
         }
-    ]
+    ],
+    "outputs": {
+        "stan": {
+            "type": "string",
+            "value": "[concat( reference(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions, 'Full' ).properties.invoke_url_template, '?code=', listkeys(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions).default )]"
+        }
+    }
 }
