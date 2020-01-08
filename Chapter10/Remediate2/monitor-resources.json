@@ -95,7 +95,7 @@
                 "azureFunctionReceivers": [
                     {
                         "name": "remediateFunction",
-                        "functionAppResourceId": "[listsecrets(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions).trigger_url]",
+                        "functionAppResourceId": "[concat( reference(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions, 'Full' ).properties.invoke_url_template, '?code=', listkeys(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions).default )]",
                         "functionName": "[parameters('functionName')]",
                         "httpTriggerUrl": "",
                         "useCommonAlertSchema": true
