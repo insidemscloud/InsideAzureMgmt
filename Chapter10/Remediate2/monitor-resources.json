@@ -110,6 +110,7 @@
             "location": "[replace(toLower(resourceGroup().location), ' ', '')]",
             "tags": "[variables('hiddenLinkTag')]",
             "properties": {
+                "displayName": "Windows Service Stopped",
                 "description": "Notifies on Windows Services Stopped.",
                 "enabled": "true",
                 "source": {
