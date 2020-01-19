@@ -58,6 +58,4 @@ else
     {
         Write-Output "Change is made by Automation Account Service Principal so no changes will be made to the VM."
     }
-
-
 }
