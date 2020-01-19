@@ -35,7 +35,7 @@
         },
         "_artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter10/EventGrid",
+            "defaultValue": "https://raw.githubusercontent.com/slavizh/InsideAzureMgmt-1/master/Chapter10/EventGrid",
             "metadata": {
                 "description": "The location of resources, such as templates and DSC modules, that the template depends on."
             }
