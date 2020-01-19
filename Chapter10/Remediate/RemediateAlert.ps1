@@ -75,7 +75,8 @@ if ($WebhookData)
         # This is the Log Analytics Search Schema
         $alertName = $webhookBody.data.AlertRuleName
     }
-    else {
+    else
+    {
         # The schema isn't supported.
         Write-Error "The alert data schema - $schemaId - is not supported."
     }
@@ -109,7 +110,7 @@ if ($WebhookData)
 
             # Create Temporary Script File
             $todayDate = Get-Date -Format  yy-MM-dd-HH-mm-ss
-            $tempFileName = "$vmName-$svcDisplayName-$todaydate.ps1"
+            $tempFileName = "$vmName-$svcDisplayName-$todayDate.ps1"
             $tempFile = New-Item -ItemType File -Name $tempFileName
             "Start-Service -DisplayName '$svcDisplayName' -Verbose -ErrorAction Stop" | Out-File -FilePath $tempFile -Append
 
@@ -125,14 +126,11 @@ if ($WebhookData)
             $computerName = $queryResult.Computer
             Write-Error "Computer $computerName is not Azure VM. Only Azure VMs are supported."
         }
-
-
     }
     else
     {
         Write-Error "The alert rule with name - $alertName - is not supported."
     }
-
 }
 else
 {
