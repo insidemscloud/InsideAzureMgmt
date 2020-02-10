@@ -67,7 +67,7 @@
             ],
             "properties": {
                 "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-                "principalType": "MSI",
+                "principalType": "ServicePrincipal",
                 "principalId": "[reference('3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6', variables('apiVersions').policyAssignments, 'Full' ).identity.principalId]",
                 "scope": "[resourceGroup().id]"
             }
@@ -81,7 +81,7 @@
             ],
             "properties": {
                 "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-                "principalType": "MSI",
+                "principalType": "ServicePrincipal",
                 "principalId": "[reference('c937dcb4-4398-4b39-8d63-4a6be432252e', variables('apiVersions').policyAssignments, 'Full' ).identity.principalId]",
                 "scope": "[resourceGroup().id]"
             }
