@@ -11,9 +11,8 @@
     },
     "variables": {
         "apiVersions": {
-            "policyAssignments": "2018-05-01",
-            "deployments": "2018-05-01",
-            "roleAssignments": "2017-09-01"
+            "policyAssignments": "2019-06-01",
+            "roleAssignments": "2018-09-01-preview"
         }
     },
     "resources": [
@@ -26,7 +25,7 @@
                 "type": "SystemAssigned"
             },
             "properties": {
-                "displayName": "[Preview]: Audit that password security settings are set correctly inside Linux and Windows machines",
+                "displayName": "[Preview]: Audit VMs with insecure password security settings",
                 "description": null,
                 "metadata": {
                     "assignedBy": "Inside Azure Management"
@@ -45,7 +44,7 @@
                 "type": "SystemAssigned"
             },
             "properties": {
-                "displayName": "[Preview]: Audit that an application is installed inside Linux VMs",
+                "displayName": "Audit Linux VMs that do not have the specified applications installed",
                 "description": null,
                 "metadata": {
                     "assignedBy": "Inside Azure Management"
@@ -60,37 +59,15 @@
             }
         },
         {
-            "name": "[concat('waitTemplateDeployment-', '3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6', '-', copyIndex())]",
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "[variables('apiVersions').deployments]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Authorization/policyAssignments', '3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6')]",
-                "[resourceId('Microsoft.Authorization/policyAssignments', 'c937dcb4-4398-4b39-8d63-4a6be432252e')]"
-            ],
-            "copy": {
-                "name": "waitTemplateDeploymentCopy",
-                "count": 5,
-                "mode": "serial",
-                "batchSize": 1
-            },
-            "properties": {
-                "mode": "Incremental",
-                "template": {
-                    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
-                    "contentVersion": "1.0.0.0",
-                    "resources": []
-                }
-            }
-        },
-        {
             "name": "[guid(concat('3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6', resourceGroup().name, '-Contributor' ) )]",
             "type": "Microsoft.Authorization/roleAssignments",
             "apiVersion": "[variables('apiVersions').roleAssignments]",
             "dependsOn": [
-                "waitTemplateDeploymentCopy"
+                "[resourceId('Microsoft.Authorization/policyAssignments', '3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6')]"
             ],
             "properties": {
                 "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                "principalType": "MSI",
                 "principalId": "[reference('3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6', variables('apiVersions').policyAssignments, 'Full' ).identity.principalId]",
                 "scope": "[resourceGroup().id]"
             }
@@ -100,10 +77,11 @@
             "type": "Microsoft.Authorization/roleAssignments",
             "apiVersion": "[variables('apiVersions').roleAssignments]",
             "dependsOn": [
-                "waitTemplateDeploymentCopy"
+                "[resourceId('Microsoft.Authorization/policyAssignments', 'c937dcb4-4398-4b39-8d63-4a6be432252e')]"
             ],
             "properties": {
                 "roleDefinitionId": "[concat(subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                "principalType": "MSI",
                 "principalId": "[reference('c937dcb4-4398-4b39-8d63-4a6be432252e', variables('apiVersions').policyAssignments, 'Full' ).identity.principalId]",
                 "scope": "[resourceGroup().id]"
             }

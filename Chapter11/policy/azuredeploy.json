@@ -16,7 +16,7 @@
         },
         "_artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter11/policy",
+            "defaultValue": "https://raw.githubusercontent.com/slavizh/InsideAzureMgmt-1/master/Chapter11/policy",
             "metadata": {
                 "description": "The location of resources, such as templates and DSC modules, that the template depends on."
             }
@@ -31,7 +31,7 @@
     },
     "variables": {
         "apiVersions": {
-            "deployments": "2018-05-01"
+            "deployments": "2019-10-01"
         },
         "templatesUris": {
             "policies": "[concat(parameters('_artifactsLocation'), '/policies.json', parameters('_artifactsLocationSasToken'))]"
