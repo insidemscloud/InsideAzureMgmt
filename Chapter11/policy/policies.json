@@ -30,6 +30,7 @@
                 "metadata": {
                     "assignedBy": "Inside Azure Management"
                 },
+                "enforcementMode": "Default",
                 "scope": "[resourceGroup().id]",
                 "policyDefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/3fa7cbf5-c0a4-4a59-85a5-cca4d996d5a6",
                 "parameters": {}
@@ -49,6 +50,7 @@
                 "metadata": {
                     "assignedBy": "Inside Azure Management"
                 },
+                "enforcementMode": "Default",
                 "scope": "[resourceGroup().id]",
                 "policyDefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/c937dcb4-4398-4b39-8d63-4a6be432252e",
                 "parameters": {
