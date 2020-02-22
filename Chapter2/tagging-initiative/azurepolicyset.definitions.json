@@ -1,6 +1,6 @@
 [
     {
-        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/8ce3da23-7156-49e4-b145-24f95f9dcb46",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/d157c373-a6c4-483d-aaad-570756956268",
         "parameters": {
             "tagName": {
                 "value": "costCenter"
@@ -11,7 +11,7 @@
         }
     },
     {
-        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/49c88fc8-6fd1-46fd-a676-f12d1d3a4c71",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/5ffd78d9-436d-4b41-a421-5baa819e3008",
         "parameters": {
             "tagName": {
                 "value": "costCenter"
@@ -22,29 +22,7 @@
         }
     },
     {
-        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/1e30110a-5ceb-460c-a204-c1c3969c6d62",
-        "parameters": {
-            "tagName": {
-                "value": "costCenter"
-            },
-            "tagValue": {
-                "value": "[parameters('costCenter')]"
-            }
-        }
-    },
-    {
-        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/2a0e14a6-b0a6-4fab-991a-187a4f81c498",
-        "parameters": {
-            "tagName": {
-                "value": "costCenter"
-            },
-            "tagValue": {
-                "value": "[parameters('costCenter')]"
-            }
-        }
-    },
-    {
-        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/8ce3da23-7156-49e4-b145-24f95f9dcb46",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/d157c373-a6c4-483d-aaad-570756956268",
         "parameters": {
             "tagName": {
                 "value": "appName"
@@ -55,29 +33,7 @@
         }
     },
     {
-        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/49c88fc8-6fd1-46fd-a676-f12d1d3a4c71",
-        "parameters": {
-            "tagName": {
-                "value": "appName"
-            },
-            "tagValue": {
-                "value": "[parameters('appName')]"
-            }
-        }
-    },
-    {
-        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/1e30110a-5ceb-460c-a204-c1c3969c6d62",
-        "parameters": {
-            "tagName": {
-                "value": "appName"
-            },
-            "tagValue": {
-                "value": "[parameters('appName')]"
-            }
-        }
-    },
-    {
-        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/2a0e14a6-b0a6-4fab-991a-187a4f81c498",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/5ffd78d9-436d-4b41-a421-5baa819e3008",
         "parameters": {
             "tagName": {
                 "value": "appName"
