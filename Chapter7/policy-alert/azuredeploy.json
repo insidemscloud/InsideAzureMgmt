@@ -1,0 +1,58 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "actionGroupResourceId": {
+            "type": "string"
+        },
+        "resourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource group where uncompliant resources will be monitored."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "activityLogAlerts": "2017-04-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "Policy Alert",
+            "type": "Microsoft.Insights/activityLogAlerts",
+            "apiVersion": "[variables( 'apiVersions' ).activityLogAlerts]",
+            "location": "Global",
+            "properties": {
+                "enabled": true,
+                "description": "Policy log alert sample.",
+                "scopes": [
+                    "[concat(subscription().id, '/resourceGroups/', parameters('resourceGroupName'))]"
+                ],
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "Policy"
+                        },
+                        {
+                            "field": "operationName",
+                            "equals": "Microsoft.Authorization/policies/audit/action"
+                        },
+                        {
+                            "field": "properties.isComplianceCheck",
+                            "equals": "False"
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[parameters('actionGroupResourceId')]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

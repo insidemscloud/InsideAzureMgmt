@@ -1,0 +1,12 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "actionGroupResourceId": {
+            "value": "/subscriptions/3c1d68a5-4064-4522-94e4-e0378165922e/resourceGroups/kustotest1/providers/Microsoft.Insights/actiongroups/mgmtDemo"
+        },
+        "resourceGroupName": {
+            "value": "ASR"
+        }
+    }
+}

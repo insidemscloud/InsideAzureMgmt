@@ -1,0 +1,58 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "actionGroupResourceId": {
+            "type": "string"
+        },
+        "resourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource group where autoscale actions will be monitored."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "activityLogAlerts": "2017-04-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "[concat('Autoscale on ', parameters('resourceGroupName'), ' Alert')]",
+            "type": "Microsoft.Insights/activityLogAlerts",
+            "apiVersion": "[variables( 'apiVersions' ).activityLogAlerts]",
+            "location": "Global",
+            "properties": {
+                "enabled": true,
+                "description": "Autoscale log alert sample.",
+                "scopes": [
+                    "[concat(subscription().id, '/resourceGroups/', parameters('resourceGroupName'))]"
+                ],
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "Autoscale"
+                        },
+                        {
+                            "field": "operationName",
+                            "equals": "Microsoft.Insights/AutoscaleSettings/Scaleup/Action"
+                        },
+                        {
+                            "field": "status",
+                            "equals": "Succeeded"
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[parameters('actionGroupResourceId')]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

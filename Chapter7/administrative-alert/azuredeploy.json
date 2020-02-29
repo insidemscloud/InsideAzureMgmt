@@ -1,0 +1,56 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "actionGroupResourceId": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "activityLogAlerts": "2017-04-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "Resource Group was created",
+            "type": "Microsoft.Insights/activityLogAlerts",
+            "apiVersion": "[variables('apiVersions').activityLogAlerts]",
+            "location": "Global",
+            "properties": {
+                "enabled": true,
+                "description": "Administrative log alert sample.",
+                "scopes": [
+                    "[subscription().id]"
+                ],
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "Administrative"
+                        },
+                        {
+                            "field": "operationName",
+                            "equals": "Microsoft.Resources/subscriptions/resourceGroups/write"
+                        },
+                        {
+                            "field": "status",
+                            "equals": "Succeeded"
+                        },
+                        {
+                            "field": "properties.statusCode",
+                            "equals": "Created"
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[parameters('actionGroupResourceId')]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
