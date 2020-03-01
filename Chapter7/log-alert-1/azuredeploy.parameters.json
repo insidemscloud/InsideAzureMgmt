@@ -4,6 +4,12 @@
     "parameters": {
         "actionGroupResourceId": {
             "value": ""
+        },
+        "logAnalyticsWorkspaceId": {
+            "value": ""
+        },
+        "logAnalyticsWorkspaceLocation": {
+            "value": ""
         }
     }
 }

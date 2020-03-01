@@ -4,6 +4,9 @@
     "parameters": {
         "actionGroupResourceId": {
             "value": ""
+        },
+        "resourceId": {
+            "value": ""
         }
     }
 }

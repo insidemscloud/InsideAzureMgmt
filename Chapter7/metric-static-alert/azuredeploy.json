@@ -1,0 +1,74 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceID": {
+            "type": "string",
+            "metadata": {
+                "description": "The ID of the web app resource"
+            }
+        },
+        "actionGroupResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "The ID of the action group"
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "metricAlerts": "2018-03-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "Metric Alert Sample Rule",
+            "type": "Microsoft.Insights/metricAlerts",
+            "apiVersion": "[variables( 'apiVersions' ).metricAlerts]",
+            "location": "global",
+            "properties": {
+                "description": "Metric Alert Sample description",
+                "enabled": true,
+                "severity": 1,
+                "windowSize": "PT5M",
+                "evaluationFrequency": "PT5M",
+                "scopes": [
+                    "[parameters('resourceID')]"
+                ],
+                "criteria": {
+                    "allOf": [
+                        {
+                            "metricName": "AverageResponseTime",
+                            "metricNamespace": "Microsoft.Web/sites",
+                            "operator": "GreaterThan",
+                            "timeAggregation": "Average",
+                            "name": "Metric1",
+                            "dimensions": [
+                                {
+                                    "name": "Instance",
+                                    "operator": "Include",
+                                    "values": [
+                                        "*"
+                                    ]
+                                }
+                            ],
+                            "monitorTemplateType": 8,
+                            "criterionType": "StaticThresholdCriterion",
+                            "threshold": 0.1
+                        }
+                    ],
+                    "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria"
+                },
+                "actions": [
+                    {
+                        "actionGroupId": "[parameters('actionGroupResourceId')]",
+                        "webhookProperties": {
+                        }
+                    }
+                ],
+                "autoMitigate": true,
+                "targetResourceType": "Microsoft.Web/sites"
+            }
+        }
+    ]
+}

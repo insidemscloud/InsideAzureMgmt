@@ -1,0 +1,75 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "logAnalyticsWorkspaceId": {
+            "type": "string",
+            "metadata": {
+                "description": "The ID of Log Analytics workspace"
+            }
+        },
+        "logAnalyticsWorkspaceLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of Log Analytics workspace"
+            }
+        },
+        "actionGroupResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "The ID of the action group"
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "scheduledQueryRules": "2018-04-16"
+        }
+    },
+    "resources": [
+        {
+            "name": "A critical service has stopped",
+            "type": "Microsoft.Insights/scheduledQueryRules",
+            "apiVersion": "[variables( 'apiVersions' ).scheduledQueryRules]",
+            "location": "[toLower( replace( parameters( 'logAnalyticsWorkspaceLocation' ), ' ', '' ) )]",
+            "properties": {
+                "description": "A critical service has stopped",
+                "displayName": "A critical service has stopped",
+                "enabled": "true",
+                "source": {
+                    "authorizedResources": [
+                    ],
+                    "query": "ConfigurationChange | where ConfigChangeType =~ 'WindowsServices' and SvcChangeType =~ 'State' and SvcState =~ 'Stopped' | where SvcDisplayName in ('Computer Browser', 'DNS Client', 'DHCP Client', 'Server', 'Windows Event Log', 'Windows Firewall',  'Remote Procedure Call (RPC)', 'Workstation' ) | extend AggregatedValue = 1 | summarize arg_max(TimeGenerated, *) by _ResourceId, SvcDisplayName, bin(TimeGenerated, 5m)",
+                    "dataSourceId": "[parameters('logAnalyticsWorkspaceId')]",
+                    "queryType": "ResultCount"
+                },
+                "schedule": {
+                    "frequencyInMinutes": 5,
+                    "timeWindowInMinutes": 5
+                },
+                "action": {
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "1",
+                    "throttlingInMin": 0,
+                    "aznsAction": {
+                        "actionGroup": [
+                            "[parameters('actionGroupResourceId')]"
+                        ],
+                        "emailSubject": null,
+                        "customWebhookPayload": null
+                    },
+                    "trigger": {
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 0,
+                        "metricTrigger": {
+                            "thresholdOperator": "GreaterThan",
+                            "threshold": 0,
+                            "metricTriggerType": "Total",
+                            "metricColumn": "_ResourceId,SvcDisplayName"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
