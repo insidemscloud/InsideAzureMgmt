@@ -3,19 +3,19 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "resourceGroupName": {
-            "value": "mgmt"
+            "value": "kustotest"
         },
         "resourceGroupLocation": {
-            "value": "West Europe"
+            "value": "East US"
         },
         "automationAccountName": {
-            "value": "mgmtDemoA"
+            "value": "ws007aa"
         },
         "automationAccountLocation": {
-            "value": "West Europe"
+            "value": "East US 2"
         },
         "logAnalyticsWorkspaceName": {
-            "value": "mgmtDemoW"
+            "value": "ws007"
         }
     }
 }

@@ -1,0 +1,49 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "roleDefinitionId": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource id of the role Definition"
+            }
+        },
+        "principalId": {
+            "type": "string",
+            "metadata": {
+                "description": "the object id of the MSI"
+            }
+        },
+        "siteName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the web site where the function will reside."
+            }
+        },
+        "resourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the resource group to be created."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "roleAssignments": "2018-09-01-preview",
+            "sites": "2018-11-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "[guid(concat(parameters('roleDefinitionId'), parameters('resourceGroupName'), parameters('principalId'), parameters('siteName')))]",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "[variables('apiVersions').roleAssignments]",
+            "properties": {
+                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                "principalId": "[parameters('principalId')]",
+                "principalType": "ServicePrincipal"
+            }
+        }
+    ],
+    "outputs": {}
+}

@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "automationAccountName": {
@@ -47,22 +47,22 @@
         },
         "powerShellModulesBatch1": [
             {
-                "Name": "AzureRM.Profile",
-                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.profile.5.8.2.nupkg"
+                "Name": "Az.Accounts",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/az.accounts.1.5.2.nupkg"
             }
         ],
         "powerShellModulesBatch2": [
             {
-                "Name": "AzureRM.Resources",
-                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.resources.6.7.3.nupkg"
+                "Name": "Az.Resources",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/az.resources.1.3.1.nupkg"
             },
             {
-                "Name": "AzureRM.Compute",
-                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.compute.5.9.1.nupkg"
+                "Name": "Az.Compute",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/az.compute.2.0.0.nupkg"
             },
             {
-                "Name": "AzureRM.Automation",
-                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.automation.6.1.1.nupkg"
+                "Name": "Az.Automation",
+                "Uri": "https://devopsgallerystorage.blob.core.windows.net/packages/az.automation.1.2.1.nupkg"
             }
         ]
     },
@@ -83,7 +83,7 @@
             "type": "Microsoft.OperationalInsights/workspaces",
             "name": "[parameters('logAnalyticsWorkspaceName')]",
             "apiVersion": "[variables('apiVersions').workspaces]",
-            "location": "[parameters('automationAccountLocation')]",
+            "location": "[resourceGroup().location]",
             "properties": {
                 "sku": {
                     "name": "pergb2018"
@@ -95,7 +95,7 @@
             "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'Automation')]",
             "type": "Microsoft.OperationalInsights/workspaces/linkedServices",
             "apiVersion": "[variables('apiVersions').linkedServices]",
-            "location": "[parameters('automationAccountLocation')]",
+            "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
                 "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
@@ -108,7 +108,7 @@
             "name": "[concat('AzureAutomation(', parameters('logAnalyticsWorkspaceName'), ')')]",
             "apiVersion": "[variables('apiVersions').solutions]",
             "type": "Microsoft.OperationsManagement/solutions",
-            "location": "[parameters( 'automationAccountLocation' )]",
+            "location": "[resourceGroup().location]",
             "plan": {
                 "name": "[concat('AzureAutomation(', parameters('logAnalyticsWorkspaceName'), ')')]",
                 "product": "OMSGallery/AzureAutomation",
@@ -126,7 +126,7 @@
             "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
             "apiVersion": "[variables('apiVersions').solutions]",
             "type": "Microsoft.OperationsManagement/solutions",
-            "location": "[parameters('automationAccountLocation')]",
+            "location": "[resourceGroup().location]",
             "plan": {
                 "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
                 "product": "OMSGallery/ChangeTracking",
@@ -203,7 +203,7 @@
                 "description": "Remediation runbook",
                 "publishContentLink": {
                     "uri": "[concat(parameters('_artifactsLocation' ), '/RemediateAlert.ps1', parameters('_artifactsLocationSasToken'))]",
-                    "version": "1.0.0.0"
+                    "version": "2.0.0.0"
                 }
             },
             "dependsOn": [

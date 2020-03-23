@@ -1,0 +1,48 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "actionGroupResourceId": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "activityLogAlerts": "2017-04-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "Security Alert High Severity",
+            "type": "Microsoft.Insights/activityLogAlerts",
+            "apiVersion": "[variables( 'apiVersions' ).activityLogAlerts]",
+            "location": "Global",
+            "properties": {
+                "enabled": true,
+                "description": "Security log alert sample.",
+                "scopes": [
+                    "[subscription().id]"
+                ],
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "Security"
+                        },
+                        {
+                            "field": "properties.Severity",
+                            "equals": "High"
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[parameters('actionGroupResourceId')]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

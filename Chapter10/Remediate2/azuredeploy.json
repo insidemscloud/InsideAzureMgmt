@@ -1,0 +1,177 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the resource group to be created."
+            }
+        },
+        "resourceGroupLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the resource group to be created."
+            }
+        },
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Log Analytics Workspace to be created."
+            }
+        },
+        "siteName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the web site where the function will reside."
+            }
+        },
+        "functionName": {
+            "defaultValue": "RemediateAlert",
+            "type": "string",
+            "metadata": {
+                "description": "The name of function that will be deployed"
+            }
+        },
+        "planName": {
+            "defaultValue": "WestEuropePlan",
+            "type": "string",
+            "metadata": {
+                "description": "The name of the web site plan that will be created."
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the storage account that will be used by the function."
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/insidemscloud/InsideAzureMgmt/master/Chapter10/Remediate2",
+            "metadata": {
+                "description": "The location of resources, such as templates and DSC modules, that the template depends on."
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Auto-generated token to access _artifactsLocation."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "deployments": "2019-05-01",
+            "resourceGroups": "2018-05-01"
+        },
+        "templatesUris": {
+            "functionResources": "[concat(parameters('_artifactsLocation'), '/function-resources.json', parameters('_artifactsLocationSasToken'))]",
+            "roleAssignment": "[concat(parameters('_artifactsLocation'), '/role-assignment.json', parameters('_artifactsLocationSasToken'))]",
+            "monitorResources": "[concat(parameters('_artifactsLocation'), '/monitor-resources.json', parameters('_artifactsLocationSasToken'))]"
+        }
+    },
+    "resources": [
+        {
+            "name": "[parameters('resourceGroupName')]",
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "[variables('apiVersions').resourceGroups]",
+            "location": "[parameters('resourceGroupLocation')]",
+            "properties": {}
+        },
+        {
+            "dependsOn": [
+                "[parameters('resourceGroupName')]"
+            ],
+            "name": "functionResourcesDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').functionResources]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "siteName": {
+                        "value": "[parameters('siteName')]"
+                    },
+                    "functionName": {
+                        "value": "[parameters('functionName')]"
+                    },
+                    "planName": {
+                        "value": "[parameters('planName')]"
+                    },
+                    "storageAccountName": {
+                        "value": "[parameters('storageAccountName')]"
+                    },
+                    "_artifactsLocation": {
+                        "value": "[parameters('_artifactsLocation')]"
+                    },
+                    "_artifactsLocationSasToken": {
+                        "value": "[parameters('_artifactsLocationSasToken')]"
+                    }
+                }
+            }
+        },
+        {
+            "dependsOn": [
+                "functionResourcesDeployment"
+            ],
+            "name": "monitorResourcesDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "resourceGroup": "[parameters('resourceGroupName')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').monitorResources]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "logAnalyticsWorkspaceName": {
+                        "value": "[parameters('logAnalyticsWorkspaceName')]"
+                    },
+                    "siteName": {
+                        "value": "[parameters('siteName')]"
+                    },
+                    "functionName": {
+                        "value": "[parameters('functionName')]"
+                    }
+                }
+            }
+        },
+        {
+            "dependsOn": [
+                "functionResourcesDeployment"
+            ],
+            "name": "roleAssignmentAutomation",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "[variables('apiVersions').deployments]",
+            "location": "[deployment().location]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templatesUris').roleAssignment]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "roleDefinitionId": {
+                        "value": "[concat( subscription().id, '/providers/Microsoft.Authorization/roleDefinitions/9980e02c-c2be-4d73-94e8-173b1dc7cf3c' )]"
+                    },
+                    "principalId": {
+                        "value": "[reference('functionResourcesDeployment').outputs.principalId.value]"
+                    },
+                    "siteName": {
+                        "value": "[parameters('siteName')]"
+                    },
+                    "resourceGroupName": {
+                        "value": "[parameters('resourceGroupName')]"
+                    }
+                }
+            }
+        }
+    ]
+}

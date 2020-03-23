@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "automationAccountName": {
@@ -35,32 +35,6 @@
             "scheduledQueryRules": "2018-04-16"
         },
         "hiddenLinkTag": "[json(concat('{\"hidden-link:/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'), '\": \"Resource\"}'))]",
-        "logAnalyticsLocations": {
-            "West Central US": "westcentralus",
-            "East US": "eastus",
-            "West Europe": "westeurope",
-            "Central India": "centralindia",
-            "Canada Central": "canadacentral",
-            "Australia Southeast": "australiasoutheast",
-            "Japan East": "japaneast",
-            "Southeast Asia": "southeastasia",
-            "UK South": "uksouth",
-            "South Central US": "southcentralus",
-            "North Europe": "northeurope",
-            "West US 2": "westus2",
-            "westcentralus": "westcentralus",
-            "eastus": "eastus",
-            "westeurope": "westeurope",
-            "centralindia": "centralindia",
-            "canadacentral": "canadacentral",
-            "australiasoutheast": "australiasoutheast",
-            "japaneast": "japaneast",
-            "southeastasia": "southeastasia",
-            "uksouth": "uksouth",
-            "southcentralus": "southcentralus",
-            "northeurope": "northeurope",
-            "westus2": "westus2"
-        },
         "webhookName": "RemediateAlert",
         "actionGroupName": "mgmtDemo"
     },
@@ -101,7 +75,8 @@
                         "webhookResourceId": "[resourceId('Microsoft.Automation/automationAccounts/webhooks', parameters('automationAccountName'), variables('webhookName'))]",
                         "isGlobalRunbook": false,
                         "name": "Runbook",
-                        "serviceUri": "[parameters('webhookUri')]"
+                        "serviceUri": "[parameters('webhookUri')]",
+                        "useCommonAlertSchema": false
                     }
                 ],
                 "voiceReceivers": [],
@@ -116,12 +91,13 @@
             "name": "Windows Service Stopped",
             "type": "Microsoft.Insights/scheduledQueryRules",
             "apiVersion": "[variables('apiVersions').scheduledQueryRules]",
-            "location": "[variables('logAnalyticsLocations')[parameters('automationAccountLocation')]]",
+            "location": "[replace(toLower(resourceGroup().location), ' ', '')]",
+            "tags": "[variables('hiddenLinkTag')]",
             "properties": {
                 "description": "Notifies on Windows Services Stopped.",
                 "enabled": "true",
                 "source": {
-                    "query": "ConfigurationChange | where ConfigChangeType == 'WindowsServices'  and SvcState == 'Stopped'  | where SvcDisplayName == 'Print Spooler' or SvcDisplayName == 'DHCP Client' or SvcDisplayName == 'Server' or SvcDisplayName == 'Windows Time' or SvcDisplayName == 'DNS Client' | extend ComputerService = strcat(SourceComputerId, ' - ', SvcDisplayName) | extend AggregatedValue = 1 | summarize arg_max(TimeGenerated, *) by ComputerService, bin(TimeGenerated, 5m)",
+                    "query": "ConfigurationChange | where ConfigChangeType == 'WindowsServices' and SvcState == 'Stopped' | where SvcDisplayName == 'Print Spooler' or SvcDisplayName == 'DHCP Client' or SvcDisplayName == 'Server' or SvcDisplayName == 'Windows Time' or SvcDisplayName == 'DNS Client' | extend AggregatedValue = 1 | summarize arg_max(TimeGenerated, *) by _ResourceId, SvcDisplayName, bin(TimeGenerated, 5m)",
                     "dataSourceId": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
                     "queryType": "ResultCount"
                 },
@@ -145,7 +121,7 @@
                             "thresholdOperator": "GreaterThan",
                             "threshold": 0,
                             "metricTriggerType": "Total",
-                            "metricColumn": "AggregatedValue"
+                            "metricColumn": "_ResourceId,SvcDisplayName"
                         }
                     }
                 }

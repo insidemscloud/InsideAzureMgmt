@@ -8,7 +8,7 @@ param
 )
 
 
-if(Get-AzureRmContext)
+if(Get-AzContext | Where-Object {$_.Subscription.Id -eq $SubscriptionId})
 {
     $selectSubscriptionParams = @{
         SubscriptionId = $SubscriptionId
@@ -18,11 +18,11 @@ if(Get-AzureRmContext)
     {
         $selectSubscriptionParams.Add('TenantId', $TenantId)
     }
-    Select-AzureRmSubscription @selectSubscriptionParams
+    Select-AzSubscription @selectSubscriptionParams
 }
 else
 {
-    Connect-AzureRmAccount -ErrorAction Stop
+    Connect-AzAccount -ErrorAction Stop
 
     $selectSubscriptionParams = @{
         SubscriptionId = $SubscriptionId
@@ -33,7 +33,7 @@ else
         $selectSubscriptionParams.Add('TenantId', $TenantId)
     }
 
-    Select-AzureRmSubscription @selectSubscriptionParams
+    Select-AzSubscription @selectSubscriptionParams
 }
 
 $firstDeploymentParams = @{
@@ -45,7 +45,7 @@ $firstDeploymentParams = @{
     Verbose = $true
     ErrorAction = 'Stop'
 }
-New-AzureRmDeployment @firstDeploymentParams
+New-AzDeployment @firstDeploymentParams
 
 $automationAccountResourceGroup = $firstDeployment.Parameters.resourceGroupName.Value
 $automationAccountName = $firstDeployment.Parameters.automationAccountName.Value
@@ -57,9 +57,9 @@ try
         ResourceType = "Microsoft.Automation/automationAccounts/webhooks"
         ResourceGroupName = $automationAccountResourceGroup
         ApiVersion = '2015-10-31'
-        ErrorAction = 'SilentlyContinue'
+        ErrorAction = 'Stop'
     }
-    Get-AzureRmResource @getWebhookParams | Out-Null
+    Get-AzResource @getWebhookParams | Out-Null
     $webhookUri = ""
 }
 catch
@@ -73,7 +73,7 @@ catch
         Action = 'Action'
         ErrorAction = 'Stop'
     }
-    $webhookUri = Invoke-AzureRmResourceAction @validWebhookUriParams
+    $webhookUri = Invoke-AzResourceAction @validWebhookUriParams
 }
 
 $secondDeploymentParams = @{
@@ -89,4 +89,4 @@ if($webhookUri -ne "")
 {
     $secondDeploymentParams.Add('webhookUri', (ConvertTo-SecureString $webhookUri -AsPlainText -Force))
 }
-New-AzureRmDeployment @secondDeploymentParams
+New-AzDeployment @secondDeploymentParams

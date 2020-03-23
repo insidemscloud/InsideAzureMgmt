@@ -1,0 +1,60 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "actionGroupResourceId": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "activityLogAlerts": "2017-04-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "Service Health Alert",
+            "type": "Microsoft.Insights/activityLogAlerts",
+            "apiVersion": "[variables( 'apiVersions' ).activityLogAlerts]",
+            "location": "Global",
+            "properties": {
+                "enabled": true,
+                "description": "Service Health alert sample.",
+                "scopes": [
+                    "[subscription().id]"
+                ],
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "ServiceHealth"
+                        },
+                        {
+                            "field": "properties.stage",
+                            "equals": "Active"
+                        },
+                        {
+                            "anyOf": [
+                                {
+                                    "field": "properties.incidentType",
+                                    "equals": "Incident"
+                                },
+                                {
+                                    "field": "properties.incidentType",
+                                    "equals": "Maintenance"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[parameters('actionGroupResourceId')]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,60 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "actionGroupResourceId": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "activityLogAlerts": "2017-04-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "Advisor Recommendation Alert",
+            "type": "Microsoft.Insights/activityLogAlerts",
+            "apiVersion": "[variables( 'apiVersions' ).activityLogAlerts]",
+            "location": "Global",
+            "properties": {
+                "enabled": true,
+                "description": "Advisor log alert sample.",
+                "scopes": [
+                    "[subscription().id]"
+                ],
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "Recommendation"
+                        },
+                        {
+                            "field": "operationName",
+                            "equals": "Microsoft.Advisor/recommendations/available/action"
+                        },
+                        {
+                            "anyOf": [
+                                {
+                                    "field": "properties.recommendationCategory",
+                                    "equals": "Cost"
+                                },
+                                {
+                                    "field": "properties.recommendationCategory",
+                                    "equals": "HighAvailability"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[parameters('actionGroupResourceId')]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

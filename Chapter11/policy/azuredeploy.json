@@ -31,7 +31,7 @@
     },
     "variables": {
         "apiVersions": {
-            "deployments": "2018-05-01"
+            "deployments": "2019-10-01"
         },
         "templatesUris": {
             "policies": "[concat(parameters('_artifactsLocation'), '/policies.json', parameters('_artifactsLocationSasToken'))]"

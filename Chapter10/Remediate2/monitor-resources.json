@@ -1,0 +1,154 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Log Analytics Workspace to be created."
+            }
+        },
+        "siteName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the web site where the function will reside."
+            }
+        },
+        "functionName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of function that will be deployed"
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "actionGroups": "2019-06-01",
+            "scheduledQueryRules": "2018-04-16",
+            "workspaces": "2017-03-15-preview",
+            "solutions": "2015-11-01-preview",
+            "datasources": "2015-11-01-preview",
+            "functions": "2019-08-01"
+        },
+        "hiddenLinkTag": "[json(concat('{\"hidden-link:/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'), '\": \"Resource\"}'))]",
+        "actionGroupName": "mgmtDemo"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "name": "[parameters('logAnalyticsWorkspaceName')]",
+            "apiVersion": "[variables('apiVersions').workspaces]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "sku": {
+                    "name": "pergb2018"
+                },
+                "retentionInDays": 30
+            }
+        },
+        {
+            "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
+            "apiVersion": "[variables('apiVersions').solutions]",
+            "type": "Microsoft.OperationsManagement/solutions",
+            "location": "[resourceGroup().location]",
+            "plan": {
+                "name": "[concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')')]",
+                "product": "OMSGallery/ChangeTracking",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+            },
+            "properties": {
+                "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('logAnalyticsWorkspaceName'), '/', 'ChangeTrackingServices_CollectionFrequency')]",
+            "type": "Microsoft.OperationalInsights/workspaces/datasources",
+            "apiVersion": "[variables('apiVersions').datasources]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationsManagement/solutions', concat('ChangeTracking(', parameters('logAnalyticsWorkspaceName'), ')'))]"
+            ],
+            "kind": "ChangeTrackingServices",
+            "properties": {
+                "CollectionTimeInterval": 10
+            }
+        },
+        {
+            "type": "Microsoft.Insights/actionGroups",
+            "name": "[variables('actionGroupName')]",
+            "apiVersion": "[variables('apiVersions').actionGroups]",
+            "location": "Global",
+            "properties": {
+                "groupShortName": "mgmt",
+                "enabled": true,
+                "emailReceivers": [],
+                "smsReceivers": [],
+                "webhookReceivers": [],
+                "itsmReceivers": [],
+                "azureAppPushReceivers": [],
+                "automationRunbookReceivers": [],
+                "voiceReceivers": [],
+                "logicAppReceivers": [],
+                "azureFunctionReceivers": [
+                    {
+                        "name": "remediateFunction",
+                        "functionAppResourceId": "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+                        "functionName": "[parameters('functionName')]",
+                        "httpTriggerUrl": "[concat( reference(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions, 'Full').properties.invoke_url_template, '?code=', listkeys(resourceId('Microsoft.Web/sites/functions', parameters('siteName'), parameters('functionName')), variables('apiVersions').functions).default)]",
+                        "useCommonAlertSchema": true
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Windows Service Stopped",
+            "type": "Microsoft.Insights/scheduledQueryRules",
+            "apiVersion": "[variables('apiVersions').scheduledQueryRules]",
+            "location": "[replace(toLower(resourceGroup().location), ' ', '')]",
+            "tags": "[variables('hiddenLinkTag')]",
+            "properties": {
+                "displayName": "Windows Service Stopped",
+                "description": "Notifies on Windows Services Stopped.",
+                "enabled": "true",
+                "source": {
+                    "query": "ConfigurationChange | where ConfigChangeType == 'WindowsServices' and SvcState == 'Stopped' | where SvcDisplayName == 'Print Spooler' or SvcDisplayName == 'DHCP Client' or SvcDisplayName == 'Server' or SvcDisplayName == 'Windows Time' or SvcDisplayName == 'DNS Client' | extend AggregatedValue = 1 | summarize arg_max(TimeGenerated, *) by _ResourceId, SvcDisplayName, bin(TimeGenerated, 5m)",
+                    "dataSourceId": "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
+                    "queryType": "ResultCount"
+                },
+                "schedule": {
+                    "frequencyInMinutes": 5,
+                    "timeWindowInMinutes": 5
+                },
+                "action": {
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "0",
+                    "throttlingInMin": 0,
+                    "aznsAction": {
+                        "actionGroup": [
+                            "[resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+                        ]
+                    },
+                    "trigger": {
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 0,
+                        "metricTrigger": {
+                            "thresholdOperator": "GreaterThan",
+                            "threshold": 0,
+                            "metricTriggerType": "Total",
+                            "metricColumn": "_ResourceId,SvcDisplayName"
+                        }
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('microsoft.insights/actionGroups', variables('actionGroupName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+    }
+}

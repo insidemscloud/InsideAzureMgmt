@@ -1,0 +1,70 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "actionGroupResourceId": {
+            "type": "string"
+        },
+        "resourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource group where unhealthy resources will be monitored."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "activityLogAlerts": "2017-04-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "VM is Unavailable or Degraded",
+            "type": "Microsoft.Insights/activityLogAlerts",
+            "apiVersion": "[variables( 'apiVersions' ).activityLogAlerts]",
+            "location": "Global",
+            "properties": {
+                "enabled": true,
+                "description": "Resource Health log alert sample.",
+                "scopes": [
+                    "[concat(subscription().id, '/resourceGroups/', parameters('resourceGroupName'))]"
+                ],
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "ResourceHealth"
+                        },
+                        {
+                            "field": "status",
+                            "equals": "Active"
+                        },
+                        {
+                            "field": "resourceType",
+                            "equals": "MICROSOFT.COMPUTE/VIRTUALMACHINES"
+                        },
+                        {
+                            "anyOf": [
+                                {
+                                    "field": "properties.currentHealthStatus",
+                                    "equals": "Unavailable"
+                                },
+                                {
+                                    "field": "properties.currentHealthStatus",
+                                    "equals": "Degraded"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[parameters('actionGroupResourceId')]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

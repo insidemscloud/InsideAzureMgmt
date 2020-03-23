@@ -19,16 +19,16 @@ Function ConvertFrom-LogAnalyticsSearchResult
 
     $data = $SearchResults
     $count = 0
-    foreach ($table in $data.Tables) 
+    foreach ($table in $data.Tables)
     {
         $count += $table.Rows.Count
     }
 
     $objectView = New-Object object[] $count
     $i = 0;
-    foreach ($table in $data.Tables) 
+    foreach ($table in $data.Tables)
     {
-        foreach ($row in $table.Rows) 
+        foreach ($row in $table.Rows)
         {
             # Create a dictionary of properties
             $properties = @{}
@@ -55,7 +55,7 @@ if ($WebhookData)
     $schemaId = $WebhookBody.schemaId
     Write-Output "schemaId: $schemaId"
 
-    if ($schemaId -eq "AzureMonitorMetricAlert") 
+    if ($schemaId -eq "AzureMonitorMetricAlert")
     {
         # This is the near-real-time Metric Alert schema
         Write-Error "The alert data schema - $schemaId - is not supported."
@@ -70,12 +70,13 @@ if ($WebhookData)
         # This is the original Metric Alert schema
         Write-Error "The alert data schema - $schemaId - is not supported."
     }
-    elseif ($schemaId -eq "unknown")
+    elseif ($schemaId -eq "Microsoft.Insights/LogAlert")
     {
         # This is the Log Analytics Search Schema
         $alertName = $webhookBody.data.AlertRuleName
     }
-    else {
+    else
+    {
         # The schema isn't supported.
         Write-Error "The alert data schema - $schemaId - is not supported."
     }
@@ -92,7 +93,7 @@ if ($WebhookData)
             $vmName = $resourceInformation[8]
 
             Write-Output "Service $svcDisplayName on VM $vmName in resource group $resourceGroup has stopped."
-            
+
             # Authenticate to Azure
             Write-Output "Authenticating to Azure with service principal and certificate"
             $connectionAssetName = "AzureRunAsConnection"
@@ -103,19 +104,19 @@ if ($WebhookData)
                 throw "Could not retrieve connection asset: $connectionAssetName. Check that this asset exists in the Automation account."
             }
 
-            Connect-AzureRmAccount -ServicePrincipal -Tenant $conn.TenantID -ApplicationId $conn.ApplicationID -CertificateThumbprint $conn.CertificateThumbprint | Out-null
+            Connect-AzAccount -ServicePrincipal -Tenant $conn.TenantID -ApplicationId $conn.ApplicationID -CertificateThumbprint $conn.CertificateThumbprint | Out-null
 
-            Set-AzureRmContext -SubscriptionId $subscriptionId -ErrorAction Stop
-	        
+            Set-AzContext -SubscriptionId $subscriptionId -ErrorAction Stop
+
             # Create Temporary Script File
-            $todayDate = Get-Date -Format  yy-MM-dd-HH-mm-ss 
-            $tempFileName = "$vmName-$svcDisplayName-$todaydate.ps1" 
+            $todayDate = Get-Date -Format  yy-MM-dd-HH-mm-ss
+            $tempFileName = "$vmName-$svcDisplayName-$todayDate.ps1"
             $tempFile = New-Item -ItemType File -Name $tempFileName
             "Start-Service -DisplayName '$svcDisplayName' -Verbose -ErrorAction Stop" | Out-File -FilePath $tempFile -Append
 
             # Start the service with Run Command for Azure VMs
             Write-Output "Invoking command to start the service"
-            $commandOutput = Invoke-AzureRmVMRunCommand -ResourceGroupName $resourceGroup -VMName $vmName -CommandId 'RunPowerShellScript' -ScriptPath $tempFile -ErrorAction Stop
+            $commandOutput = Invoke-AzVMRunCommand -ResourceGroupName $resourceGroup -VMName $vmName -CommandId 'RunPowerShellScript' -ScriptPath $tempFile -ErrorAction Stop
             $commandOutput.Status
             $commandOutput.Value[0]
 
@@ -125,14 +126,11 @@ if ($WebhookData)
             $computerName = $queryResult.Computer
             Write-Error "Computer $computerName is not Azure VM. Only Azure VMs are supported."
         }
-        
-
     }
     else
     {
         Write-Error "The alert rule with name - $alertName - is not supported."
     }
-
 }
 else
 {

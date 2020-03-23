@@ -1,0 +1,86 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourceID": {
+            "type": "string",
+            "metadata": {
+                "description": "The ID of the web app resource"
+            }
+        },
+        "actionGroupResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "The ID of the action group"
+            }
+        },
+        "resourceLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The location of the web app resource."
+            }
+        }
+    },
+    "variables": {
+        "apiVersions": {
+            "metricAlerts": "2018-03-01"
+        }
+    },
+    "resources": [
+        {
+            "name": "Dynamic Metric Alert Sample Rule",
+            "type": "Microsoft.Insights/metricAlerts",
+            "apiVersion": "[variables( 'apiVersions' ).metricAlerts]",
+            "location": "global",
+            "properties": {
+                "description": "Dynamic Metric Alert Sample description",
+                "enabled": true,
+                "severity": 1,
+                "windowSize": "PT5M",
+                "evaluationFrequency": "PT5M",
+                "scopes": [
+                    "[parameters('resourceID')]"
+                ],
+                "criteria": {
+                    "allOf": [
+                        {
+                            "metricName": "AverageResponseTime",
+                            "metricNamespace": "Microsoft.Web/sites",
+                            "operator": "GreaterThan",
+                            "timeAggregation": "Average",
+                            "name": "Metric1",
+                            "alertSensitivity": "Medium",
+                            "failingPeriods": {
+                                "numberOfEvaluationPeriods": 4,
+                                "minFailingPeriodsToAlert": 4
+                            },
+                            "ignoreDataBefore": "2019-09-03T21:00:00.000Z",
+                            "dimensions": [
+                                {
+                                    "name": "Instance",
+                                    "operator": "Include",
+                                    "values": [
+                                        "*"
+                                    ]
+                                }
+                            ],
+                            "monitorTemplateType": 13,
+                            "criterionType": "DynamicThresholdCriterion"
+                        }
+                    ],
+                    "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria"
+                },
+                "actions": [
+                    {
+                        "actionGroupId": "[parameters('actionGroupResourceId')]",
+                        "webhookProperties": {
+                        }
+                    }
+                ],
+                "autoMitigate": true,
+                "targetResourceType": "Microsoft.Web/sites",
+                "targetResourceRegion": "[parameters('resourceLocation')]"
+            }
+        }
+    ]
+}
