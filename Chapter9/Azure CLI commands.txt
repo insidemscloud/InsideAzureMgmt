@@ -28,9 +28,9 @@ az aks create \
 --workspace-resource-id <your LA workspace ID>
 
 # Downloading the Kubernetes Credentials and pointing 'kubectl' to use them.
- az aks get-credentials \
- --resource-group InsideAzureK8s \
- --name myAKSCluster
+az aks get-credentials \
+--resource-group InsideAzureK8s \
+--name myAKSCluster
 
 # Enabling Azure Monitor for containers on the AKS Cluster.
 az aks enable-addons \
