@@ -20,8 +20,6 @@
 |**Alexandre Verkinderen**|[@alexverkinderen](https://twitter.com/alexverkinderen)| Microsoft MVP: Cloud & Datacenter Management |
 |**Bert Wolters**|[@bertwolters](https://twitter.com/bertwolters)| Microsoft MVP: Azure |
 
-
-
 ## Table of Contents
 This repository contains the sample scripts and code from the "Inside Azure Management" e-book.
 
@@ -44,4 +42,4 @@ The Inside Azure Management e-book covers the following chapters:
 * Chapter 16 - Conclusion
 
 ## Download
-This book is available for download at <a href="https://bit.ly/InsideAzureMgmt" target="_blank">https://bit.ly/InsideAzureMgmt</a>
+This book is available for download at <a href="https://bit.ly/InsideAzureMgmt" target="_blank">https://bit.ly/InsideAzure</a>
