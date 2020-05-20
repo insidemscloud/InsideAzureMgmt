@@ -6,6 +6,7 @@
 |1.0 | Inside Microsoft Operations Management Suite | January 2016
 |2.0 | Inside Microsoft Operations Management Suite | August 2017
 |3.0 | Inside Azure Management | March 2019
+|4.0 | Inside Azure Management | May 2020
 
 ![Inside Azure Management](images/bookCover.png)
 ## Authors:
