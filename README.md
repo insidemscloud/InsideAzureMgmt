@@ -13,10 +13,13 @@
 | Name | Social Media | Comment
 |:--- | :--- | :---
 |**Stanislav Zhelyazkov**|[@StanZhelyazkov](https://twitter.com/StanZhelyazkov)| Microsoft MVP: Cloud & Datacenter Management |
-|**Tao Yang**|[@MrTaoYang](https://twitter.com/mrtaoyang)| Microsoft MVP: Cloud & Datacenter Management |
+|**Tao Yang**|[@MrTaoYang](https://twitter.com/mrtaoyang)| Microsoft MVP: Azure |
 |**Kevin Greene**|[@kgreeneit](https://twitter.com/kgreeneit)| Microsoft MVP: Cloud & Datacenter Management |
-|**Anders Bengtsson**|[http://contoso.se/blog/](http://contoso.se/blog/)| Microsoft Cloud Solution Architect |
 |**Pete Zerger**|[@pzerger](https://twitter.com/pzerger)| Microsoft MVP: Cloud & Datacenter Management |
+|**Ryan Irujo**|[@reirujo](https://twitter.com/reirujo)| Microsoft Cloud Solution Architect |
+|**Alexandre Verkinderen**|[@alexverkinderen](https://twitter.com/alexverkinderen)| Microsoft MVP: Cloud & Datacenter Management |
+|**Bert Wolters**|[https://azureman.com/](https://azureman.com/)| Microsoft MVP: Azure |
+
 
 
 ## Table of Contents
