@@ -17,7 +17,7 @@
 |**Kevin Greene**|[@kgreeneit](https://twitter.com/kgreeneit)| Microsoft MVP: Cloud & Datacenter Management |
 |**Pete Zerger**|[@pzerger](https://twitter.com/pzerger)| Microsoft MVP: Cloud & Datacenter Management |
 |**Ryan Irujo**|[@reirujo](https://twitter.com/reirujo)| Microsoft Cloud Solution Architect |
-|**Alexandre Verkinderen**|[@alexverkinderen](https://twitter.com/alexverkinderen)| Microsoft MVP: Cloud & Datacenter Management |
+|**Alexandre Verkinderen**|[@alexverkinderen](https://twitter.com/alexverkinderen)| Microsoft MVP: Azure |
 |**Bert Wolters**|[@bertwolters](https://twitter.com/bertwolters)| Microsoft MVP: Azure |
 
 ## Table of Contents
